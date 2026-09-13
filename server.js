@@ -640,7 +640,7 @@ app.get('/api/momentum', async (req, res) => {
 let ipoCache = { data: null, timestamp: 0 };
 const IPO_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-async function fetchIPODetails(url) {
+async function fetchIPODetails(url, priceBandStr) {
     try {
         if (!url || !url.startsWith('http')) return { pe: 'N/A', postPe: 'N/A', peerPe: 'N/A' };
         const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
@@ -651,19 +651,38 @@ async function fetchIPODetails(url) {
         
         let pe = 'N/A';
         let peerPe = 'N/A';
+        let eps = null;
         
-        // 1. Look for KPI table for PE Ratio
+        // 1. Look for KPI table for PE Ratio & EPS
         $('table').each((i, table) => {
             $(table).find('tr').each((j, row) => {
                 const text = $(row).text().replace(/\n/g, ' ').trim().toLowerCase();
+                
                 if (text.includes('p/e ratio') || text.includes('pe ratio')) {
                     const val = $(row).find('td').last().text().trim();
                     if (val && !text.includes('company')) { // avoid header rows
                         pe = val;
                     }
                 }
+                
+                if (text.includes('earning per share') || text.includes('eps')) {
+                    const val = $(row).find('td').last().text().trim();
+                    if(val && !text.includes('company') && val.match(/[\d.]+/)) {
+                        eps = parseFloat(val.match(/[\d.]+/)[0]);
+                    }
+                }
             });
         });
+
+        // Mandatory Calculation Check:
+        if ((pe === 'N/A' || !pe || pe.toLowerCase() === 'na') && eps && priceBandStr) {
+            // Extract the highest numerical price from the priceBand string (e.g., "₹66 to ₹70" -> 70)
+            const matches = priceBandStr.match(/\d+/g);
+            if (matches && eps > 0) {
+                const maxPrice = Math.max(...matches.map(Number));
+                pe = (maxPrice / eps).toFixed(2);
+            }
+        }
 
         // 2. Look for Listed Peers table for Peer PE
         let foundPeers = false;
@@ -740,7 +759,7 @@ app.get('/api/ipos', async (req, res) => {
         console.log(`📥 Fetching details for ${ipos.length} IPOs concurrently...`);
         // Concurrently fetch details for all IPOs to get PE info
         await Promise.all(ipos.map(async (ipo) => {
-            const details = await fetchIPODetails(ipo.link);
+            const details = await fetchIPODetails(ipo.link, ipo.priceBand);
             ipo.pe = details.pe;
             ipo.postPe = details.postPe;
             ipo.peerPe = details.peerPe;
