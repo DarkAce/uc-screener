@@ -640,7 +640,7 @@ app.get('/api/momentum', async (req, res) => {
 let ipoCache = { data: null, timestamp: 0 };
 const IPO_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-async function fetchIPODetails(url, priceBandStr) {
+async function fetchIPODetails(url, priceBandStr, gmpStr) {
     try {
         if (!url || !url.startsWith('http')) return { pe: 'N/A', postPe: 'N/A', peerPe: 'N/A' };
         const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
@@ -650,6 +650,7 @@ async function fetchIPODetails(url, priceBandStr) {
         const $ = cheerio.load(html);
         
         let pe = 'N/A';
+        let postPe = 'N/A';
         let peerPe = 'N/A';
         let eps = null;
         
@@ -681,6 +682,11 @@ async function fetchIPODetails(url, priceBandStr) {
             if (matches && eps > 0) {
                 const maxPrice = Math.max(...matches.map(Number));
                 pe = (maxPrice / eps).toFixed(2);
+                
+                // Calculate Post-IPO PE using GMP
+                const gmpMatch = gmpStr ? gmpStr.match(/-?\d+/) : null;
+                const gmpVal = gmpMatch ? parseInt(gmpMatch[0]) : 0;
+                postPe = ((maxPrice + gmpVal) / eps).toFixed(2);
             }
         }
 
@@ -712,7 +718,7 @@ async function fetchIPODetails(url, priceBandStr) {
             }
         });
 
-        return { pe, postPe: 'N/A', peerPe }; // ipowatch rarely provides post-IPO PE, defaulting to N/A
+        return { pe, postPe, peerPe };
     } catch (e) {
         return { pe: 'N/A', postPe: 'N/A', peerPe: 'N/A' };
     }
@@ -759,7 +765,7 @@ app.get('/api/ipos', async (req, res) => {
         console.log(`📥 Fetching details for ${ipos.length} IPOs concurrently...`);
         // Concurrently fetch details for all IPOs to get PE info
         await Promise.all(ipos.map(async (ipo) => {
-            const details = await fetchIPODetails(ipo.link, ipo.priceBand);
+            const details = await fetchIPODetails(ipo.link, ipo.priceBand, ipo.gmp);
             ipo.pe = details.pe;
             ipo.postPe = details.postPe;
             ipo.peerPe = details.peerPe;
