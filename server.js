@@ -636,9 +636,77 @@ app.get('/api/momentum', async (req, res) => {
     }
 });
 
+// ─── IPO API Cache ─────────────────────────────────────────────────────
+let ipoCache = { data: null, timestamp: 0 };
+const IPO_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+async function fetchIPODetails(url) {
+    try {
+        if (!url || !url.startsWith('http')) return { pe: 'N/A', postPe: 'N/A', peerPe: 'N/A' };
+        const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+        if (!response.ok) return { pe: 'N/A', postPe: 'N/A', peerPe: 'N/A' };
+        
+        const html = await response.text();
+        const $ = cheerio.load(html);
+        
+        let pe = 'N/A';
+        let peerPe = 'N/A';
+        
+        // 1. Look for KPI table for PE Ratio
+        $('table').each((i, table) => {
+            $(table).find('tr').each((j, row) => {
+                const text = $(row).text().replace(/\n/g, ' ').trim().toLowerCase();
+                if (text.includes('p/e ratio') || text.includes('pe ratio')) {
+                    const val = $(row).find('td').last().text().trim();
+                    if (val && !text.includes('company')) { // avoid header rows
+                        pe = val;
+                    }
+                }
+            });
+        });
+
+        // 2. Look for Listed Peers table for Peer PE
+        let foundPeers = false;
+        $('table').each((i, table) => {
+            const tableText = $(table).text().toLowerCase();
+            if (tableText.includes('peer') || tableText.includes('listed peer') || tableText.includes('company')) {
+                // Find column index for PE
+                let peColIdx = -1;
+                $(table).find('tr').first().find('th, td').each((j, cell) => {
+                    const header = $(cell).text().toLowerCase();
+                    if (header.includes('p/e') || header.includes('pe ratio') || header === 'pe') {
+                        peColIdx = j;
+                    }
+                });
+                
+                if (peColIdx > -1) {
+                    // Get the first peer's PE (2nd row)
+                    const peerRow = $(table).find('tr').eq(1);
+                    if (peerRow) {
+                        const cellText = peerRow.find('td, th').eq(peColIdx).text().trim();
+                        if (cellText && cellText !== '-') {
+                            peerPe = cellText;
+                            foundPeers = true;
+                        }
+                    }
+                }
+            }
+        });
+
+        return { pe, postPe: 'N/A', peerPe }; // ipowatch rarely provides post-IPO PE, defaulting to N/A
+    } catch (e) {
+        return { pe: 'N/A', postPe: 'N/A', peerPe: 'N/A' };
+    }
+}
+
 // ─── API: IPO GMP Dashboard ──────────────────────────────────────────
 app.get('/api/ipos', async (req, res) => {
     try {
+        if (ipoCache.data && (Date.now() - ipoCache.timestamp < IPO_CACHE_TTL)) {
+            console.log('⚡ Serving IPOs from cache');
+            return res.json(ipoCache.data);
+        }
+
         const response = await fetch('https://ipowatch.in/ipo-grey-market-premium-latest-ipo-gmp/', {
             headers: { 'User-Agent': USER_AGENT }
         });
@@ -655,7 +723,6 @@ app.get('/api/ipos', async (req, res) => {
                     const link = nameEl.attr('href');
                     const name = nameEl.text().trim() || $(tds[0]).text().trim();
                     const gmp = $(tds[1]).text().trim();
-                    // col 2 is trend emoji (🟡/🟢/🔴) — extract for UI
                     const trend = $(tds[2]).text().trim();
                     const priceBand = $(tds[3]).text().trim();
                     const estListing = $(tds[4]).text().trim();
@@ -669,8 +736,20 @@ app.get('/api/ipos', async (req, res) => {
                 }
             }
         });
+
+        console.log(`📥 Fetching details for ${ipos.length} IPOs concurrently...`);
+        // Concurrently fetch details for all IPOs to get PE info
+        await Promise.all(ipos.map(async (ipo) => {
+            const details = await fetchIPODetails(ipo.link);
+            ipo.pe = details.pe;
+            ipo.postPe = details.postPe;
+            ipo.peerPe = details.peerPe;
+        }));
         
-        res.json({ success: true, count: ipos.length, ipos });
+        const result = { success: true, count: ipos.length, ipos };
+        ipoCache = { data: result, timestamp: Date.now() };
+        
+        res.json(result);
     } catch (err) {
         console.error('❌ Failed to fetch IPOs:', err.message);
         res.status(500).json({ success: false, error: err.message });

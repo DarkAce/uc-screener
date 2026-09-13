@@ -887,6 +887,9 @@ function renderIPOs() {
                 <th>Price Band</th>
                 <th>GMP</th>
                 <th>Est. Listing</th>
+                <th>IPO P/E</th>
+                <th>Post P/E</th>
+                <th>Peer P/E</th>
                 <th>Dates</th>
                 <th>Status</th>
                 <th>Last Updated</th>
@@ -916,6 +919,9 @@ function renderIPOs() {
             <td class="price-band-col">${ipo.priceBand || '—'}</td>
             <td class="gmp-cell${gmpHighClass}" style="color: ${gmpColor}">${ipo.gmp}<span class="gmp-trend">${trendEmoji}</span></td>
             <td class="est-listing-col">${ipo.estListing}</td>
+            <td class="pe-col">${ipo.pe || 'N/A'}</td>
+            <td class="pe-col">${ipo.postPe || 'N/A'}</td>
+            <td class="pe-col">${ipo.peerPe || 'N/A'}</td>
             <td>${ipo.dates}</td>
             <td><span class="status-badge ${statusClass}">${ipo.status}</span></td>
             <td class="updated-col">${ipo.lastUpdated}</td>

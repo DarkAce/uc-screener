@@ -948,3 +948,4 @@ select option { background: #1a1a3a; }
         display: none;
     }
 }
+.pe-col { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }

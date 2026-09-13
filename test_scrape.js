@@ -1,14 +1,19 @@
 const cheerio = require('cheerio');
-fetch('https://ipowatch.in/ipo-grey-market-premium-latest-ipo-gmp/')
+fetch('https://ipowatch.in/a-one-steels-ipo/')
   .then(r => r.text())
   .then(html => {
     const $ = cheerio.load(html);
-    const ths = [];
-    $('table').first().find('tr').first().find('th').each((i, el) => ths.push($(el).text().trim()));
-    console.log('Headers:', ths);
-    const row = $('table').first().find('tr').eq(1);
-    const tds = [];
-    row.find('td').each((i, el) => tds.push($(el).text().trim()));
-    console.log('Row 1 cells:', tds);
-    console.log('Cell count:', tds.length);
+    $('table').each((i, table) => {
+        const text = $(table).text();
+        if(text.includes('P/E') || text.includes('EPS')) {
+            console.log(`\n--- TABLE ${i} ---`);
+            $(table).find('tr').each((j, row) => {
+                const cells = [];
+                $(row).find('th, td').each((k, cell) => {
+                    cells.push($(cell).text().trim().replace(/\s+/g, ' '));
+                });
+                console.log(cells.join(' | '));
+            });
+        }
+    });
   });
