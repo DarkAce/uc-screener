@@ -599,6 +599,10 @@ app.get('/api/momentum', async (req, res) => {
 
             const sparkPrices = days.map(d => d.close);
 
+            // 10-day High/Low for Swing Trading Support/Resistance
+            const high10d = Math.max(...days.map(d => d.high));
+            const low10d = Math.min(...days.map(d => d.low));
+
             momentum.push({
                 symbol, name: data.name, series: data.series,
                 latestClose: Math.round(latestClose * 100) / 100,
@@ -608,6 +612,8 @@ app.get('/api/momentum', async (req, res) => {
                 consistency: Math.round(consistency),
                 volumeSurge: Math.round(volumeSurge * 100) / 100,
                 momentumScore: Math.min(momentumScore, 100),
+                high10d: Math.round(high10d * 100) / 100,
+                low10d: Math.round(low10d * 100) / 100,
                 sparkPrices
             });
         }

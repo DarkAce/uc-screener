@@ -1012,8 +1012,12 @@ function fetchMomentumData() {
             if (pText) pText.textContent = data.message;
         } else if (data.type === 'complete') {
             momentumData = data.data.stocks;
-            renderMomentum();
-            updateMomentumStats();
+            if (currentTab === 'swing') {
+                renderSwingStrategies();
+            } else {
+                renderMomentum();
+                updateMomentumStats();
+            }
             eventSource.close();
         } else if (data.type === 'error') {
             container.innerHTML = `<div class="ipo-loading"><p style="color: var(--danger)">Error: ${data.message}</p></div>`;
@@ -1053,13 +1057,17 @@ function updateMomentumStats() {
 function renderSwingStrategies() {
     const container = document.getElementById('swing-container');
     
-    if (stocksData.length === 0) {
-        container.innerHTML = '<div class="ipo-loading"><p>Fetch UC Data first to find swing setups.</p></div>';
+    if (momentumData.length === 0) {
+        container.innerHTML = `
+        <div class="ipo-loading" style="color: #4d7cff">
+            <div class="loader" style="border-top-color: #4d7cff"></div>
+            <p>Analyzing historical support & resistance for Swing setups...</p>
+        </div>`;
         return;
     }
     
-    // Get consecutive and today UC stocks (good momentum candidates)
-    let candidates = stocksData.filter(s => s.consecutiveUC || s.todayUC);
+    // Get top momentum stocks with high score
+    let candidates = momentumData.filter(s => s.momentumScore > 60);
     
     if (currentSearch) {
         const q = currentSearch.toLowerCase();
@@ -1067,16 +1075,30 @@ function renderSwingStrategies() {
     }
     
     if(candidates.length === 0) {
-        container.innerHTML = '<div class="ipo-loading"><p>No swing setups found.</p></div>';
+        container.innerHTML = '<div class="ipo-loading"><p>No high-probability swing setups found right now.</p></div>';
         return;
     }
     
     let html = '';
     candidates.forEach(stock => {
         const entry = stock.latestClose;
-        const target = (entry * 1.10).toFixed(2); // +10% target
-        const stop = (entry * 0.95).toFixed(2);  // -5% stop loss
-        const rr = "1:2";
+        
+        // Smart Support & Resistance
+        let stop = stock.low10d;
+        // If the 10-day low is too far (e.g. > 15% away), set a tighter -5% stop loss
+        if ((entry - stop) / entry > 0.15) {
+            stop = entry * 0.95;
+        }
+        // If the 10-day low is exactly the entry, set a tight -3% stop loss
+        if (stop >= entry) {
+            stop = entry * 0.97;
+        }
+        
+        const risk = entry - stop;
+        const target = entry + (risk * 2); // Enforce 1:2 Risk/Reward
+        
+        // Check if our mathematical target is above the 10-day high (breakout trade)
+        const isBreakout = target > stock.high10d;
         
         const safeName = stock.name.replace(/'/g, "\\'");
         
@@ -1084,24 +1106,24 @@ function renderSwingStrategies() {
         <div class="swing-card" onclick="openStockDetail('${stock.symbol}', '${safeName}', null)">
             <div class="swing-header">
                 <div>
-                    <div class="swing-symbol">${stock.symbol}</div>
+                    <div class="swing-symbol">${stock.symbol} ${isBreakout ? '🚀' : ''}</div>
                     <div class="swing-name">${stock.name}</div>
                 </div>
-                <div class="swing-rr">R:R ${rr}</div>
+                <div class="swing-rr" title="Risk/Reward 1:2">R:R 1:2</div>
             </div>
             
             <div class="swing-levels">
                 <div class="swing-level">
-                    <span class="level-label">Target (+10%)</span>
-                    <span class="level-value level-target">₹${target}</span>
+                    <span class="level-label">Target (+${((target - entry) / entry * 100).toFixed(1)}%)</span>
+                    <span class="level-value level-target">₹${target.toFixed(2)}</span>
                 </div>
                 <div class="swing-level" style="background: rgba(77, 124, 255, 0.1);">
                     <span class="level-label" style="color: rgba(77, 124, 255, 0.8)">Entry Zone</span>
                     <span class="level-value level-entry">₹${entry.toFixed(2)}</span>
                 </div>
                 <div class="swing-level">
-                    <span class="level-label">Stop Loss (-5%)</span>
-                    <span class="level-value level-stop">₹${stop}</span>
+                    <span class="level-label">Stop Loss (-${((entry - stop) / entry * 100).toFixed(1)}%)</span>
+                    <span class="level-value level-stop">₹${stop.toFixed(2)}</span>
                 </div>
             </div>
         </div>
