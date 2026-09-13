@@ -372,10 +372,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const stocksContainer = document.getElementById('stocks-container');
         const ipoContainer = document.getElementById('ipo-container');
         const momentumContainer = document.getElementById('momentum-container');
+        const swingContainer = document.getElementById('swing-container');
         
         if (currentTab === 'ipo') {
             stocksContainer.style.display = 'none';
             momentumContainer.style.display = 'none';
+            swingContainer.style.display = 'none';
             ipoContainer.style.display = 'block';
             if (ipoData.length === 0) {
                 fetchIPOData();
@@ -386,6 +388,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         } else if (currentTab === 'momentum') {
             stocksContainer.style.display = 'none';
             ipoContainer.style.display = 'none';
+            swingContainer.style.display = 'none';
             momentumContainer.style.display = 'block';
             if (momentumData.length === 0) {
                 fetchMomentumData();
@@ -393,9 +396,16 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
                 renderMomentum();
                 updateMomentumStats();
             }
+        } else if (currentTab === 'swing') {
+            stocksContainer.style.display = 'none';
+            ipoContainer.style.display = 'none';
+            momentumContainer.style.display = 'none';
+            swingContainer.style.display = 'grid';
+            renderSwingStrategies();
         } else {
             ipoContainer.style.display = 'none';
             momentumContainer.style.display = 'none';
+            swingContainer.style.display = 'none';
             stocksContainer.style.display = 'grid';
             // Restore stat-fire card's original UC styling
             const fireCard = document.querySelector('.stat-fire');
@@ -415,6 +425,8 @@ document.getElementById('search-input').addEventListener('input', (e) => {
         renderIPOs();
     } else if (currentTab === 'momentum') {
         renderMomentum();
+    } else if (currentTab === 'swing') {
+        renderSwingStrategies();
     } else {
         renderStocks();
     }
@@ -426,6 +438,8 @@ document.getElementById('sort-select').addEventListener('change', (e) => {
         renderIPOs();
     } else if (currentTab === 'momentum') {
         renderMomentum();
+    } else if (currentTab === 'swing') {
+        renderSwingStrategies();
     } else {
         renderStocks();
     }
@@ -1034,6 +1048,67 @@ function updateMomentumStats() {
     document.getElementById('stat-consecutive').style.textShadow = '0 0 20px rgba(245, 158, 11, 0.4)';
     document.getElementById('stat-today-label').textContent = 'Avg 10D Return';
     document.getElementById('stat-yesterday-label').textContent = 'Stocks Found';
+}
+
+function renderSwingStrategies() {
+    const container = document.getElementById('swing-container');
+    
+    if (stocksData.length === 0) {
+        container.innerHTML = '<div class="ipo-loading"><p>Fetch UC Data first to find swing setups.</p></div>';
+        return;
+    }
+    
+    // Get consecutive and today UC stocks (good momentum candidates)
+    let candidates = stocksData.filter(s => s.consecutiveUC || s.todayUC);
+    
+    if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        candidates = candidates.filter(i => i.name.toLowerCase().includes(q) || i.symbol.toLowerCase().includes(q));
+    }
+    
+    if(candidates.length === 0) {
+        container.innerHTML = '<div class="ipo-loading"><p>No swing setups found.</p></div>';
+        return;
+    }
+    
+    let html = '';
+    candidates.forEach(stock => {
+        const entry = stock.latestClose;
+        const target = (entry * 1.10).toFixed(2); // +10% target
+        const stop = (entry * 0.95).toFixed(2);  // -5% stop loss
+        const rr = "1:2";
+        
+        const safeName = stock.name.replace(/'/g, "\\'");
+        
+        html += `
+        <div class="swing-card" onclick="openStockDetail('${stock.symbol}', '${safeName}', null)">
+            <div class="swing-header">
+                <div>
+                    <div class="swing-symbol">${stock.symbol}</div>
+                    <div class="swing-name">${stock.name}</div>
+                </div>
+                <div class="swing-rr">R:R ${rr}</div>
+            </div>
+            
+            <div class="swing-levels">
+                <div class="swing-level">
+                    <span class="level-label">Target (+10%)</span>
+                    <span class="level-value level-target">₹${target}</span>
+                </div>
+                <div class="swing-level" style="background: rgba(77, 124, 255, 0.1);">
+                    <span class="level-label" style="color: rgba(77, 124, 255, 0.8)">Entry Zone</span>
+                    <span class="level-value level-entry">₹${entry.toFixed(2)}</span>
+                </div>
+                <div class="swing-level">
+                    <span class="level-label">Stop Loss (-5%)</span>
+                    <span class="level-value level-stop">₹${stop}</span>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    container.innerHTML = html;
 }
 
 function renderMomentum() {

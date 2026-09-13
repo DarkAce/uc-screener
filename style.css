@@ -949,3 +949,80 @@ select option { background: #1a1a3a; }
     }
 }
 .pe-col { color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+
+.swing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+    padding: 1rem 0;
+}
+.swing-card {
+    background: rgba(20, 20, 35, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.swing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border-color: rgba(77, 124, 255, 0.3);
+}
+.swing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.swing-symbol {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.swing-name {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 180px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.swing-rr {
+    background: rgba(77, 124, 255, 0.1);
+    color: var(--accent-secondary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+.swing-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.swing-level {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.2);
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+.level-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.level-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.level-target { color: var(--accent-primary); }
+.level-entry { color: #fff; }
+.level-stop { color: #ff4b4b; }
+
