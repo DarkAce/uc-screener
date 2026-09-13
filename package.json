@@ -1,0 +1,15 @@
+{
+  "name": "uc-scanner",
+  "version": "1.0.0",
+  "description": "Upper Circuit Stock Screener with live NSE data",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.6.1",
+    "cheerio": "^1.2.0",
+    "express": "^4.18.2"
+  }
+}

@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  uc-screener:
+    build: .
+    container_name: uc-screener
+    restart: unless-stopped
+    ports:
+      - "80:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - NODE_ENV=production
