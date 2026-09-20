@@ -249,14 +249,34 @@ app.get('/api/uc-stocks/stream', async (req, res) => {
 
     try {
         const NUM_DAYS = 5;
-        const tradingDays = getLastTradingDays(NUM_DAYS);
-        console.log(`\n📊 Streaming data for sessions: ${tradingDays.map(formatDateReadable).join(' & ')}`);
-
         const sessionData = [];
-        for (let i = 0; i < NUM_DAYS; i++) {
-            res.write(`data: ${JSON.stringify({ type: 'progress', progress: (i+1)*18, message: `Starting fetch for ${formatDateReadable(tradingDays[i])}` })}\n\n`);
-            sessionData.push(await getBhavcopyForDate(tradingDays[i]));
+        const validSessionsInfo = [];
+        
+        let d = new Date();
+        let daysFound = 0;
+        let attempts = 0;
+
+        while (daysFound < NUM_DAYS && attempts < 20) {
+            d.setDate(d.getDate() - 1);
+            attempts++;
+            
+            const day = d.getDay();
+            if (day === 0 || day === 6) continue;
+            
+            const dateStr = formatDate(d);
+            res.write(`data: ${JSON.stringify({ type: 'progress', progress: Math.min((daysFound+1)*15, 90), message: `Checking ${formatDateReadable(dateStr)}` })}\n\n`);
+            
+            const data = await getBhavcopyForDate(dateStr);
+            if (data && data.ucStocks) {
+                sessionData.push(data);
+                validSessionsInfo.push({ dateReadable: data.dateReadable, ucCount: data.ucStocks.length });
+                daysFound++;
+            } else {
+                console.log(`Skipping ${dateStr}, data missing (possibly a holiday).`);
+            }
         }
+
+        console.log(`\n📊 Streaming data for ${daysFound} valid sessions.`);
 
         res.write(`data: ${JSON.stringify({ type: 'progress', progress: 95, message: 'Processing data...' })}\n\n`);
 
@@ -340,10 +360,7 @@ app.get('/api/uc-stocks/stream', async (req, res) => {
             data: {
                 success: true,
                 mode: 'live',
-                sessions: sessionData.map((d, i) => ({
-                    dateReadable: d?.dateReadable || formatDateReadable(tradingDays[i]),
-                    ucCount: d?.ucStocks?.length || 0
-                })),
+                sessions: validSessionsInfo,
                 totalStocks: stocks.length,
                 stocks,
                 timestamp: new Date().toISOString()
