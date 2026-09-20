@@ -1406,7 +1406,7 @@ async function submitTrade(action) {
     }
     
     // Get current price from modal stats
-    const priceText = document.querySelector('#modal-stats .mstat .stat-value')?.textContent;
+    const priceText = document.querySelector('#modal-stats .mstat .mstat-val')?.textContent;
     if (!priceText) {
         feedback.textContent = 'Price not loaded';
         feedback.style.color = 'var(--danger)';
