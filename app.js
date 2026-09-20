@@ -27,6 +27,8 @@ const formatVolume = (num) => {
 function filterStocks(data, tab) {
     return data.filter(s => {
         if (tab === 'consecutive') return s.ucSession1 && s.ucSession2;
+        if (tab === '3day') return s.ucDays && s.ucDays[0] && s.ucDays[1] && s.ucDays[2];
+        if (tab === '5day') return s.ucDays && s.ucDays[0] && s.ucDays[1] && s.ucDays[2] && s.ucDays[3] && s.ucDays[4];
         if (tab === 'today') return s.ucSession1;
         if (tab === 'yesterday') return s.ucSession2;
         return true;
@@ -82,8 +84,8 @@ async function fetchLiveData() {
                 }
 
                 sessionInfo = {
-                    session1: json.session1,
-                    session2: json.session2
+                    session1: json.sessions ? json.sessions[0] : json.session1,
+                    session2: json.sessions ? json.sessions[1] : json.session2
                 };
 
                 // Transform API response into card format
@@ -98,12 +100,13 @@ async function fetchLiveData() {
                     low: s.low,
                     ucBand: s.ucBand || 5,
                     volume: s.volume,
-                    ucSession1: s.ucSession1,
-                    ucSession2: s.ucSession2,
+                    ucSession1: s.ucDays ? s.ucDays[0] : s.ucSession1,
+                    ucSession2: s.ucDays ? s.ucDays[1] : s.ucSession2,
+                    ucDays: s.ucDays || [s.ucSession1, s.ucSession2, false, false, false],
                     changeSession1: s.changeSession1,
                     changeSession2: s.changeSession2,
-                    session1Date: s.session1Date,
-                    session2Date: s.session2Date,
+                    session1Date: sessionInfo.session1?.dateReadable,
+                    session2Date: sessionInfo.session2?.dateReadable,
                     closeSession2: s.closeSession2,
                     prevCloseSession2: s.prevCloseSession2
                 }));
@@ -114,7 +117,7 @@ async function fetchLiveData() {
                 updateTabs();
                 updateStats();
                 renderStocks();
-                console.log(`✅ Live data: ${json.session1?.ucCount || 0} UC (${json.session1?.dateReadable}), ${json.session2?.ucCount || 0} UC (${json.session2?.dateReadable}), ${json.consecutiveCount} consecutive`);
+                console.log(`✅ Live data processed. Stocks loaded.`);
             }, 400); // 400ms delay for visual feedback
         }
         else if (data.type === 'error') {
@@ -180,7 +183,11 @@ function updateTabs() {
     tabs.forEach(tab => {
         const type = tab.dataset.tab;
         if (type === 'consecutive') {
-            tab.textContent = `Consecutive UC 🔥`;
+            tab.textContent = `2-Day UC 🔥`;
+        } else if (type === '3day') {
+            tab.textContent = `3-Day UC 🔥🔥`;
+        } else if (type === '5day') {
+            tab.textContent = `5-Day UC 🚀`;
         } else if (type === 'today') {
             tab.textContent = `${s1} UC`;
         } else if (type === 'yesterday') {
@@ -197,11 +204,11 @@ function updateTabs() {
 
 // ─── Update Stats ────────────────────────────────────────────────────
 function updateStats() {
-    const consecutive = stocksData.filter(s => s.ucSession1 && s.ucSession2).length;
+    const consecutive2 = stocksData.filter(s => s.ucDays && s.ucDays[0] && s.ucDays[1]).length;
     const session1Count = stocksData.filter(s => s.ucSession1).length;
     const session2Count = stocksData.filter(s => s.ucSession2).length;
 
-    animateCounter('stat-consecutive', consecutive);
+    animateCounter('stat-consecutive', consecutive2);
     animateCounter('stat-today', session1Count);
     animateCounter('stat-yesterday', session2Count);
 
@@ -304,7 +311,9 @@ function renderStocks() {
     const s2Date = sessionInfo.session2?.dateReadable || 'Session 2';
 
     container.innerHTML = sorted.map((s, i) => {
-        const isConsecutive = s.ucSession1 && s.ucSession2;
+        const isConsecutive2 = s.ucDays && s.ucDays[0] && s.ucDays[1];
+        const isConsecutive3 = s.ucDays && s.ucDays[0] && s.ucDays[1] && s.ucDays[2];
+        const isConsecutive5 = s.ucDays && s.ucDays[0] && s.ucDays[1] && s.ucDays[2] && s.ucDays[3] && s.ucDays[4];
 
         // Session 1 change display
         let s1ChangeHtml = '';
@@ -331,9 +340,9 @@ function renderStocks() {
         const displayPrice = s.ucSession1 ? s.price : (s.closeSession2 || s.price);
 
         return `
-            <div class="stock-card ${isConsecutive ? 'consecutive-card' : ''}" style="animation-delay: ${i * 0.05}s" data-symbol="${s.symbol}" onclick="openStockDetail('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')">
+            <div class="stock-card ${isConsecutive2 ? 'consecutive-card' : ''}" style="animation-delay: ${i * 0.05}s" data-symbol="${s.symbol}" onclick="openStockDetail('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')">
                 <div class="card-highlight"></div>
-                ${isConsecutive ? '<div class="fire-badge">🔥 2-Day UC</div>' : ''}
+                ${isConsecutive5 ? '<div class="fire-badge">🚀 5-Day UC</div>' : (isConsecutive3 ? '<div class="fire-badge">🔥🔥 3-Day UC</div>' : (isConsecutive2 ? '<div class="fire-badge">🔥 2-Day UC</div>' : ''))}
                 <div class="card-header">
                     <div>
                         <div class="stock-symbol">${s.symbol}</div>

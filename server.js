@@ -248,111 +248,72 @@ app.get('/api/uc-stocks/stream', async (req, res) => {
     res.flushHeaders();
 
     try {
-        const tradingDays = getLastTradingDays(2);
+        const NUM_DAYS = 5;
+        const tradingDays = getLastTradingDays(NUM_DAYS);
         console.log(`\n📊 Streaming data for sessions: ${tradingDays.map(formatDateReadable).join(' & ')}`);
 
-        // Report progress 1
-        res.write(`data: ${JSON.stringify({ type: 'progress', progress: 10, message: `Starting fetch for ${formatDateReadable(tradingDays[0])}` })}\n\n`);
-        const session1Data = await getBhavcopyForDate(tradingDays[0]);
+        const sessionData = [];
+        for (let i = 0; i < NUM_DAYS; i++) {
+            res.write(`data: ${JSON.stringify({ type: 'progress', progress: (i+1)*18, message: `Starting fetch for ${formatDateReadable(tradingDays[i])}` })}\n\n`);
+            sessionData.push(await getBhavcopyForDate(tradingDays[i]));
+        }
 
-        // Report progress 2
-        res.write(`data: ${JSON.stringify({ type: 'progress', progress: 50, message: `Starting fetch for ${formatDateReadable(tradingDays[1])}` })}\n\n`);
-        const session2Data = await getBhavcopyForDate(tradingDays[1]);
+        res.write(`data: ${JSON.stringify({ type: 'progress', progress: 95, message: 'Processing data...' })}\n\n`);
 
-        // Report progress 3
-        res.write(`data: ${JSON.stringify({ type: 'progress', progress: 90, message: 'Processing data...' })}\n\n`);
-
-        if (!session1Data && !session2Data) {
-            res.write(`data: ${JSON.stringify({ type: 'error', message: 'Could not fetch bhavcopy data for either session. NSE archives may be temporarily unavailable.' })}\n\n`);
+        if (!sessionData[0] && !sessionData[1]) {
+            res.write(`data: ${JSON.stringify({ type: 'error', message: 'Could not fetch bhavcopy data for recent sessions.' })}\n\n`);
             return res.end();
         }
 
-        const session1UC = session1Data?.ucStocks || [];
-        const session2UC = session2Data?.ucStocks || [];
+        const allSymbols = new Set();
+        sessionData.forEach(d => {
+            if (d && d.ucStocks) d.ucStocks.forEach(s => allSymbols.add(s.symbol));
+        });
 
-        const session1Symbols = new Set(session1UC.map(s => s.symbol));
-        const session2Symbols = new Set(session2UC.map(s => s.symbol));
-
-        // Build enriched stock list
         const stocks = [];
-
-        // Session 1 stocks (most recent)
-        session1UC.forEach(s => {
-            const inSession2 = session2Symbols.has(s.symbol);
-            const s2Data = inSession2 ? session2UC.find(x => x.symbol === s.symbol) : null;
-            stocks.push({
-                symbol: s.symbol,
-                name: s.name,
-                series: s.series,
-                price: s.close,
-                prevClose: s.prevClose,
-                open: s.open,
-                high: s.high,
-                low: s.low,
-                changeSession1: s.pctChange,
-                changeSession2: s2Data?.pctChange || null,
-                ucBand: s.ucBand,
-                volume: s.volume,
-                ucSession1: true,
-                ucSession2: inSession2,
-                session1Date: session1Data.dateReadable,
-                session2Date: session2Data?.dateReadable || null,
-                prevCloseSession2: s2Data?.prevClose || null,
-                closeSession2: s2Data?.close || null
-            });
-        });
-
-        // Session 2 only stocks (not in session 1)
-        session2UC.forEach(s => {
-            if (!session1Symbols.has(s.symbol)) {
-                stocks.push({
-                    symbol: s.symbol,
-                    name: s.name,
-                    series: s.series,
-                    price: s.close,
-                    prevClose: s.prevClose,
-                    open: s.open,
-                    high: s.high,
-                    low: s.low,
-                    changeSession1: null,
-                    changeSession2: s.pctChange,
-                    ucBand: s.ucBand,
-                    volume: s.volume,
-                    ucSession1: false,
-                    ucSession2: true,
-                    session1Date: session1Data?.dateReadable || null,
-                    session2Date: session2Data.dateReadable,
-                    prevCloseSession2: s.prevClose,
-                    closeSession2: s.close
-                });
+        for (const symbol of allSymbols) {
+            let baseData = null;
+            const ucDays = [];
+            for (let i = 0; i < NUM_DAYS; i++) {
+                const sData = sessionData[i]?.ucStocks?.find(x => x.symbol === symbol);
+                ucDays.push(!!sData);
+                if (sData && !baseData) baseData = sData;
             }
-        });
 
-        const consecutiveCount = stocks.filter(s => s.ucSession1 && s.ucSession2).length;
+            stocks.push({
+                symbol: symbol,
+                name: baseData.name,
+                series: baseData.series,
+                price: baseData.close,
+                prevClose: baseData.prevClose,
+                open: baseData.open,
+                high: baseData.high,
+                low: baseData.low,
+                changeSession1: sessionData[0]?.ucStocks?.find(x => x.symbol === symbol)?.pctChange || null,
+                changeSession2: sessionData[1]?.ucStocks?.find(x => x.symbol === symbol)?.pctChange || null,
+                ucBand: baseData.ucBand,
+                volume: baseData.volume,
+                ucDays: ucDays,
+                prevCloseSession2: sessionData[1]?.ucStocks?.find(x => x.symbol === symbol)?.prevClose || null,
+                closeSession2: sessionData[1]?.ucStocks?.find(x => x.symbol === symbol)?.close || null
+            });
+        }
 
         res.write(`data: ${JSON.stringify({
             type: 'complete',
             data: {
                 success: true,
                 mode: 'live',
-                session1: {
-                    date: tradingDays[0],
-                    dateReadable: session1Data?.dateReadable || formatDateReadable(tradingDays[0]),
-                    ucCount: session1UC.length
-                },
-                session2: {
-                    date: tradingDays[1],
-                    dateReadable: session2Data?.dateReadable || formatDateReadable(tradingDays[1]),
-                    ucCount: session2UC.length
-                },
-                consecutiveCount,
+                sessions: sessionData.map((d, i) => ({
+                    dateReadable: d?.dateReadable || formatDateReadable(tradingDays[i]),
+                    ucCount: d?.ucStocks?.length || 0
+                })),
                 totalStocks: stocks.length,
                 stocks,
                 timestamp: new Date().toISOString()
             }
         })}\n\n`);
         res.end();
-
     } catch (err) {
         console.error('❌ API Error:', err.message);
         res.write(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`);
