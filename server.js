@@ -335,6 +335,7 @@ app.get('/api/uc-stocks/stream', async (req, res) => {
                 low: baseData.low,
                 changeSession1: sessionData[0]?.ucStocks?.find(x => x.symbol === symbol)?.pctChange || null,
                 changeSession2: sessionData[1]?.ucStocks?.find(x => x.symbol === symbol)?.pctChange || null,
+                pctChange: baseData.pctChange,
                 ucBand: baseData.ucBand,
                 volume: baseData.volume,
                 ucDays: ucDays,
