@@ -1,0 +1,46 @@
+{
+  "cash": 1000700,
+  "holdings": {},
+  "history": [
+    {
+      "id": "1789897150767",
+      "date": "2026-09-20T09:39:10.767Z",
+      "type": "SELL",
+      "symbol": "SUZLON",
+      "name": "Suzlon Energy",
+      "quantity": 150,
+      "price": 50,
+      "total": 7500
+    },
+    {
+      "id": "1789897150762",
+      "date": "2026-09-20T09:39:10.762Z",
+      "type": "SELL",
+      "symbol": "SUZLON",
+      "name": "Suzlon Energy",
+      "quantity": 50,
+      "price": 50,
+      "total": 2500
+    },
+    {
+      "id": "1789897150760",
+      "date": "2026-09-20T09:39:10.760Z",
+      "type": "BUY",
+      "symbol": "SUZLON",
+      "name": "Suzlon Energy",
+      "quantity": 100,
+      "price": 47.5,
+      "total": 4750
+    },
+    {
+      "id": "1789897150757",
+      "date": "2026-09-20T09:39:10.757Z",
+      "type": "BUY",
+      "symbol": "SUZLON",
+      "name": "Suzlon Energy",
+      "quantity": 100,
+      "price": 45.5,
+      "total": 4550
+    }
+  ]
+}

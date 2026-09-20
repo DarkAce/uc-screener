@@ -538,6 +538,15 @@ modalOverlay.innerHTML = `
             <button class="modal-close" onclick="closeStockDetail()">&times;</button>
         </div>
         <div id="modal-stats" class="modal-stats"></div>
+        <div class="modal-trade-panel" id="modal-trade-panel" style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px;">
+            <h3 style="margin-bottom: 10px; font-size: 0.9rem; color: var(--text-primary);">Paper Trading</h3>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" id="trade-qty" placeholder="Qty" min="1" style="width: 80px; padding: 6px; background: var(--bg-elevated); border: 1px solid var(--border); color: white; border-radius: 4px;">
+                <button onclick="submitTrade('BUY')" style="padding: 6px 15px; background: var(--success); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">BUY</button>
+                <button onclick="submitTrade('SELL')" style="padding: 6px 15px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">SELL</button>
+                <span id="trade-feedback" style="font-size: 0.8rem; margin-left: 10px;"></span>
+            </div>
+        </div>
         <div class="modal-chart-container">
             <h3>10-Day Price & Volume</h3>
             <canvas id="modal-chart" width="800" height="360"></canvas>
@@ -1249,4 +1258,199 @@ function renderMomentum() {
     `;
     
     container.innerHTML = html;
+}
+// ═══════════════════════════════════════════════════════════════════════
+// Paper Trading Portfolio
+// ═══════════════════════════════════════════════════════════════════════
+let portfolioData = null;
+
+async function fetchPortfolio() {
+    const container = document.getElementById('portfolio-container');
+    container.innerHTML = '<div class="loader" style="margin:40px auto"></div>';
+    
+    try {
+        const res = await fetch('/api/portfolio');
+        const data = await res.json();
+        portfolioData = data;
+        renderPortfolio();
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Failed to load portfolio: ${err.message}</p></div>`;
+    }
+}
+
+function renderPortfolio() {
+    const container = document.getElementById('portfolio-container');
+    if (!portfolioData) return;
+
+    let totalInvested = 0;
+    let totalCurrentValue = 0;
+
+    // Calculate current values based on latest known prices in stocksData or momentumData
+    const holdingsList = Object.entries(portfolioData.holdings).map(([symbol, h]) => {
+        // Try to find current price from our screener data
+        let currentPrice = h.avgPrice; // Fallback
+        const screenerStock = stocksData.find(s => s.symbol === symbol);
+        if (screenerStock) {
+            currentPrice = screenerStock.price;
+        } else {
+            const momStock = momentumData.find(s => s.symbol === symbol);
+            if (momStock) currentPrice = momStock.latestClose;
+        }
+        
+        const currentValue = h.quantity * currentPrice;
+        const pnl = currentValue - h.totalInvested;
+        const pnlPct = (pnl / h.totalInvested) * 100;
+        
+        totalInvested += h.totalInvested;
+        totalCurrentValue += currentValue;
+        
+        return `
+            <tr>
+                <td>${symbol} <br><span style="font-size:0.7rem;color:var(--text-muted)">${h.name}</span></td>
+                <td>${h.quantity}</td>
+                <td>${formatCurrency(h.avgPrice)}</td>
+                <td>${formatCurrency(currentPrice)}</td>
+                <td class="${pnl >= 0 ? 'positive' : 'negative'}">${formatCurrency(pnl)} (${pnlPct.toFixed(2)}%)</td>
+                <td>${formatCurrency(currentValue)}</td>
+            </tr>
+        `;
+    }).join('');
+
+    const totalPnL = totalCurrentValue - totalInvested;
+    const totalPnlPct = totalInvested > 0 ? (totalPnL / totalInvested) * 100 : 0;
+    const accountValue = portfolioData.cash + totalCurrentValue;
+
+    container.innerHTML = `
+        <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+            <div class="stat-card" style="flex:1">
+                <div class="stat-value">${formatCurrency(accountValue)}</div>
+                <div class="stat-label">Total Account Value</div>
+            </div>
+            <div class="stat-card" style="flex:1">
+                <div class="stat-value">${formatCurrency(portfolioData.cash)}</div>
+                <div class="stat-label">Available Cash</div>
+            </div>
+            <div class="stat-card" style="flex:1">
+                <div class="stat-value ${totalPnL >= 0 ? 'positive' : 'negative'}">${totalPnL >= 0 ? '+' : ''}${formatCurrency(totalPnL)}</div>
+                <div class="stat-label">Total Unrealized P&L (${totalPnlPct.toFixed(2)}%)</div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; flex:0.5">
+                <button onclick="resetPortfolio()" style="padding: 10px 15px; background: var(--bg-elevated); color: white; border: 1px solid var(--border); border-radius: 4px; cursor: pointer;">Reset Acc</button>
+            </div>
+        </div>
+        
+        <h3 style="margin-bottom: 10px;">Active Holdings</h3>
+        ${Object.keys(portfolioData.holdings).length > 0 ? `
+            <div class="uc-table-container">
+                <table class="uc-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th>Qty</th>
+                            <th>Avg Buy</th>
+                            <th>LTP</th>
+                            <th>Unrealized P&L</th>
+                            <th>Current Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${holdingsList}
+                    </tbody>
+                </table>
+            </div>
+        ` : '<p style="color:var(--text-muted); margin-bottom:30px;">No active holdings.</p>'}
+        
+        <h3 style="margin-top: 30px; margin-bottom: 10px;">Trade History</h3>
+        ${portfolioData.history.length > 0 ? `
+            <div class="uc-table-container">
+                <table class="uc-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Symbol</th>
+                            <th>Qty</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${portfolioData.history.map(h => `
+                            <tr>
+                                <td style="font-size:0.75rem">${new Date(h.date).toLocaleString()}</td>
+                                <td class="${h.type === 'BUY' ? 'positive' : 'negative'}" style="font-weight:bold">${h.type}</td>
+                                <td>${h.symbol}</td>
+                                <td>${h.quantity}</td>
+                                <td>${formatCurrency(h.price)}</td>
+                                <td>${formatCurrency(h.total)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        ` : '<p style="color:var(--text-muted)">No trade history.</p>'}
+    `;
+}
+
+async function submitTrade(action) {
+    const symbol = document.getElementById('modal-symbol').textContent;
+    const name = document.getElementById('modal-name').textContent || symbol;
+    const qtyInput = document.getElementById('trade-qty');
+    const qty = parseInt(qtyInput.value);
+    const feedback = document.getElementById('trade-feedback');
+    
+    if (!qty || qty <= 0) {
+        feedback.textContent = 'Enter valid qty';
+        feedback.style.color = 'var(--danger)';
+        return;
+    }
+    
+    // Get current price from modal stats
+    const priceText = document.querySelector('#modal-stats .mstat .stat-value')?.textContent;
+    if (!priceText) {
+        feedback.textContent = 'Price not loaded';
+        feedback.style.color = 'var(--danger)';
+        return;
+    }
+    const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
+    
+    feedback.textContent = 'Processing...';
+    feedback.style.color = 'var(--text-secondary)';
+    
+    try {
+        const res = await fetch('/api/portfolio/trade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol, name, action, quantity: qty, price })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+            feedback.textContent = `Successfully ${action === 'BUY' ? 'bought' : 'sold'} ${qty} shares!`;
+            feedback.style.color = 'var(--success)';
+            qtyInput.value = '';
+            portfolioData = data.portfolio;
+            if (currentTab === 'portfolio') renderPortfolio();
+        } else {
+            feedback.textContent = data.error || 'Trade failed';
+            feedback.style.color = 'var(--danger)';
+        }
+    } catch (err) {
+        feedback.textContent = 'Network error';
+        feedback.style.color = 'var(--danger)';
+    }
+}
+
+async function resetPortfolio() {
+    if (!confirm('Are you sure you want to reset your portfolio back to ₹10,00,000? All history will be lost.')) return;
+    try {
+        const res = await fetch('/api/portfolio/reset', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+            portfolioData = data.portfolio;
+            renderPortfolio();
+        }
+    } catch (err) {
+        console.error("Reset failed", err);
+    }
 }

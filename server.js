@@ -30,6 +30,30 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
 
+// ─── Portfolio State (Paper Trading) ───────────────────────────────
+const PORTFOLIO_FILE = path.join(DATA_DIR, 'portfolio.json');
+const INITIAL_PORTFOLIO = {
+    cash: 1000000,
+    holdings: {},
+    history: []
+};
+
+function getPortfolio() {
+    if (!fs.existsSync(PORTFOLIO_FILE)) {
+        fs.writeFileSync(PORTFOLIO_FILE, JSON.stringify(INITIAL_PORTFOLIO, null, 2));
+        return JSON.parse(JSON.stringify(INITIAL_PORTFOLIO));
+    }
+    try {
+        return JSON.parse(fs.readFileSync(PORTFOLIO_FILE, 'utf8'));
+    } catch (e) {
+        return JSON.parse(JSON.stringify(INITIAL_PORTFOLIO));
+    }
+}
+
+function savePortfolio(data) {
+    fs.writeFileSync(PORTFOLIO_FILE, JSON.stringify(data, null, 2));
+}
+
 // ─── HTTPS download helper ───────────────────────────────────────────
 function downloadBuffer(url) {
     return new Promise((resolve, reject) => {
@@ -903,6 +927,87 @@ app.post('/api/analyze-uc', async (req, res) => {
         console.error('❌ Deep Scan Failed:', err.message);
         res.status(500).json({ success: false, error: err.message });
     }
+});
+
+// ─── API: Paper Trading Portfolio ──────────────────────────────────────
+app.get('/api/portfolio', (req, res) => {
+    res.json(getPortfolio());
+});
+
+app.post('/api/portfolio/trade', (req, res) => {
+    const { symbol, name, action, quantity, price } = req.body;
+    
+    if (!symbol || !action || !quantity || !price) {
+        return res.status(400).json({ error: 'Missing required trade parameters' });
+    }
+    
+    const qty = parseInt(quantity);
+    const prc = parseFloat(price);
+    if (qty <= 0 || prc <= 0) {
+        return res.status(400).json({ error: 'Invalid quantity or price' });
+    }
+
+    const portfolio = getPortfolio();
+    const cost = qty * prc;
+    
+    if (action === 'BUY') {
+        if (portfolio.cash < cost) {
+            return res.status(400).json({ error: 'Insufficient cash' });
+        }
+        
+        portfolio.cash -= cost;
+        
+        if (!portfolio.holdings[symbol]) {
+            portfolio.holdings[symbol] = { name, quantity: 0, avgPrice: 0, totalInvested: 0 };
+        }
+        
+        const holding = portfolio.holdings[symbol];
+        holding.totalInvested += cost;
+        holding.quantity += qty;
+        holding.avgPrice = holding.totalInvested / holding.quantity;
+        
+    } else if (action === 'SELL') {
+        const holding = portfolio.holdings[symbol];
+        if (!holding || holding.quantity < qty) {
+            return res.status(400).json({ error: 'Insufficient holdings' });
+        }
+        
+        portfolio.cash += cost;
+        holding.quantity -= qty;
+        holding.totalInvested -= (holding.avgPrice * qty);
+        
+        if (holding.quantity === 0) {
+            delete portfolio.holdings[symbol];
+        }
+    } else {
+        return res.status(400).json({ error: 'Invalid action' });
+    }
+    
+    // Log history
+    portfolio.history.unshift({
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        type: action,
+        symbol,
+        name,
+        quantity: qty,
+        price: prc,
+        total: cost
+    });
+    
+    // Keep history manageable
+    if (portfolio.history.length > 100) {
+        portfolio.history = portfolio.history.slice(0, 100);
+    }
+    
+    savePortfolio(portfolio);
+    res.json({ success: true, portfolio });
+});
+
+app.post('/api/portfolio/reset', (req, res) => {
+    const fresh = JSON.parse(JSON.stringify(INITIAL_PORTFOLIO));
+    savePortfolio(fresh);
+    res.json({ success: true, portfolio: fresh });
 });
 
 // ─── Start Server ───────────────────────────────────────────────────────────
