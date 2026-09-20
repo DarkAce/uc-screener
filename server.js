@@ -319,42 +319,6 @@ app.get('/api/uc-stocks/stream', async (req, res) => {
             });
         }
 
-        // Inject demo stocks to ensure 3-day and 5-day tabs have data for UI testing
-        stocks.unshift({
-            symbol: 'DEMO5DAY',
-            name: '5-Day Consecutive UC Demo',
-            series: 'EQ',
-            price: 150.50,
-            prevClose: 143.30,
-            open: 143.50,
-            high: 150.50,
-            low: 143.50,
-            changeSession1: 5.02,
-            changeSession2: 4.98,
-            ucBand: 5,
-            volume: 1250000,
-            ucDays: [true, true, true, true, true],
-            prevCloseSession2: 136.50,
-            closeSession2: 143.30
-        });
-        stocks.unshift({
-            symbol: 'DEMO3DAY',
-            name: '3-Day Consecutive UC Demo',
-            series: 'EQ',
-            price: 75.20,
-            prevClose: 71.60,
-            open: 71.80,
-            high: 75.20,
-            low: 71.80,
-            changeSession1: 5.03,
-            changeSession2: 4.95,
-            ucBand: 5,
-            volume: 850000,
-            ucDays: [true, true, true, false, false],
-            prevCloseSession2: 68.20,
-            closeSession2: 71.60
-        });
-
         res.write(`data: ${JSON.stringify({
             type: 'complete',
             data: {
