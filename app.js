@@ -9,6 +9,7 @@ let ipoData = [];
 let momentumData = [];
 let isLiveMode = false;
 let sessionInfo = { session1: null, session2: null };
+let deepScanData = {};
 let currentTab = 'consecutive';
 let currentSearch = '';
 let currentSort = 'change';
@@ -22,6 +23,15 @@ const formatVolume = (num) => {
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toLocaleString();
 };
+
+function filterStocks(data, tab) {
+    return data.filter(s => {
+        if (tab === 'consecutive') return s.ucSession1 && s.ucSession2;
+        if (tab === 'today') return s.ucSession1;
+        if (tab === 'yesterday') return s.ucSession2;
+        return true;
+    });
+}
 
 // ─── Data Fetching ───────────────────────────────────────────────────
 async function fetchLiveData() {
@@ -254,12 +264,7 @@ function renderStocks() {
     const container = document.getElementById('stocks-container');
 
     // Filter by tab
-    let filtered = stocksData.filter(s => {
-        if (currentTab === 'consecutive') return s.ucSession1 && s.ucSession2;
-        if (currentTab === 'today') return s.ucSession1;
-        if (currentTab === 'yesterday') return s.ucSession2;
-        return true;
-    });
+    let filtered = filterStocks(stocksData, currentTab);
 
     // Search
     if (currentSearch) {
@@ -271,7 +276,8 @@ function renderStocks() {
     }
 
     // Sort
-    filtered.sort((a, b) => {
+    let sorted = [...filtered];
+    sorted.sort((a, b) => {
         if (currentSort === 'change') {
             const aChange = a.changeSession1 ?? a.changeSession2 ?? 0;
             const bChange = b.changeSession1 ?? b.changeSession2 ?? 0;
@@ -283,7 +289,7 @@ function renderStocks() {
     });
 
     // Empty state
-    if (filtered.length === 0) {
+    if (sorted.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <div class="empty-icon">📊</div>
@@ -297,7 +303,7 @@ function renderStocks() {
     const s1Date = sessionInfo.session1?.dateReadable || 'Session 1';
     const s2Date = sessionInfo.session2?.dateReadable || 'Session 2';
 
-    container.innerHTML = filtered.map((s, i) => {
+    container.innerHTML = sorted.map((s, i) => {
         const isConsecutive = s.ucSession1 && s.ucSession2;
 
         // Session 1 change display
@@ -357,6 +363,13 @@ function renderStocks() {
                     </div>
                     <div class="uc-tags">${ucTags}</div>
                 </div>
+                ${deepScanData[s.symbol] ? `
+                <div class="ds-container">
+                    <div class="ds-badge" style="background: ${deepScanData[s.symbol].badgeColor}">${deepScanData[s.symbol].rating}</div>
+                    <div class="ds-summary">${deepScanData[s.symbol].summary}</div>
+                    ${deepScanData[s.symbol].news.map(n => `<div class="ds-news-item">${n}</div>`).join('')}
+                </div>
+                ` : ''}
             </div>
         `;
     }).join('');
@@ -375,6 +388,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const swingContainer = document.getElementById('swing-container');
         
         if (currentTab === 'ipo') {
+            document.getElementById('deep-scan-btn').style.display = 'none';
             stocksContainer.style.display = 'none';
             momentumContainer.style.display = 'none';
             swingContainer.style.display = 'none';
@@ -386,6 +400,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
                 updateIPOStats();
             }
         } else if (currentTab === 'momentum') {
+            document.getElementById('deep-scan-btn').style.display = 'none';
             stocksContainer.style.display = 'none';
             ipoContainer.style.display = 'none';
             swingContainer.style.display = 'none';
@@ -397,12 +412,14 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
                 updateMomentumStats();
             }
         } else if (currentTab === 'swing') {
+            document.getElementById('deep-scan-btn').style.display = 'none';
             stocksContainer.style.display = 'none';
             ipoContainer.style.display = 'none';
             momentumContainer.style.display = 'none';
             swingContainer.style.display = 'grid';
             renderSwingStrategies();
         } else {
+            document.getElementById('deep-scan-btn').style.display = 'flex';
             ipoContainer.style.display = 'none';
             momentumContainer.style.display = 'none';
             swingContainer.style.display = 'none';
@@ -443,6 +460,34 @@ document.getElementById('sort-select').addEventListener('change', (e) => {
     } else {
         renderStocks();
     }
+});
+
+document.getElementById('deep-scan-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('deep-scan-btn');
+    btn.innerHTML = '<span class="loader" style="width:14px;height:14px;border-width:2px;"></span> Scanning...';
+    btn.disabled = true;
+    
+    // Get symbols currently visible on the screen
+    let filtered = filterStocks(stocksData, currentTab);
+    const symbols = filtered.slice(0, 10).map(s => s.symbol); // Limit to top 10 to prevent long waits
+    
+    try {
+        const response = await fetch('/api/analyze-uc', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbols })
+        });
+        const data = await response.json();
+        if (data.success) {
+            deepScanData = { ...deepScanData, ...data.analysis };
+            renderStocks();
+        }
+    } catch (err) {
+        console.error('Deep scan failed:', err);
+    }
+    
+    btn.innerHTML = '🧠 Deep Scan';
+    btn.disabled = false;
 });
 
 document.getElementById('refresh-btn')?.addEventListener('click', () => {

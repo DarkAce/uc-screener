@@ -1026,3 +1026,65 @@ select option { background: #1a1a3a; }
 .level-entry { color: #fff; }
 .level-stop { color: #ff4b4b; }
 
+/* ─── Deep Scan ───────────────────────────────────────────────────────── */
+.deep-scan-btn {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.deep-scan-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+.deep-scan-btn:active {
+    transform: translateY(0);
+}
+.ds-badge {
+    position: absolute;
+    top: -12px;
+    right: 15px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 2;
+    animation: dsPulse 2s infinite;
+}
+@keyframes dsPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+.ds-container {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--card-border);
+}
+.ds-summary {
+    font-size: 0.85rem;
+    color: #e2e8f0;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+.ds-news-item {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    display: flex;
+    gap: 6px;
+    line-height: 1.3;
+}
+.ds-news-item::before {
+    content: "•";
+    color: var(--accent-primary);
+}

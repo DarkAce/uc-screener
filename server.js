@@ -28,6 +28,7 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
 // ─── Serve static frontend ──────────────────────────────────────────
 app.use(express.static(path.join(__dirname)));
+app.use(express.json());
 
 // ─── HTTPS download helper ───────────────────────────────────────────
 function downloadBuffer(url) {
@@ -846,6 +847,82 @@ app.get('/api/ipo/history', async (req, res) => {
         res.json({ success: true, url: targetUrl, history });
     } catch (err) {
         console.error('❌ Failed to fetch IPO History:', err.message);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// ─── API: Deep Scan (Heuristic AI) ───────────────────────────────────────────
+app.post('/api/analyze-uc', async (req, res) => {
+    try {
+        const { symbols } = req.body;
+        if (!symbols || !Array.isArray(symbols)) return res.status(400).json({ error: 'symbols array required' });
+
+        const results = {};
+        
+        // Process concurrently
+        await Promise.all(symbols.map(async (symbol) => {
+            try {
+                const url = `https://news.google.com/rss/search?q=${encodeURIComponent(symbol)}+stock+india&hl=en-IN&gl=IN&ceid=IN:en`;
+                const response = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+                const xml = await response.text();
+                
+                // Very basic XML parsing using Regex
+                const titles = [...xml.matchAll(/<title>(.*?)<\/title>/g)].map(m => m[1]);
+                // Shift first title because it's the RSS channel title
+                titles.shift();
+                
+                const topNews = titles.slice(0, 3).map(title => {
+                    // Clean HTML entities
+                    return title.replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&#8211;/g, '-').replace(/&#8216;/g, "'").replace(/&#8217;/g, "'");
+                });
+
+                // Heuristic Engine
+                let score = 0;
+                const posWords = ['profit', 'growth', 'order', 'contract', 'jump', 'surge', 'buy', 'positive', 'approval', 'dividend', 'bonus', 'soar', 'target', 'upgrade', 'fund'];
+                const negWords = ['loss', 'drop', 'plunge', 'fraud', 'probe', 'fine', 'reject', 'down', 'weak', 'sell', 'penalty', 'downgrade', 'crash', 'sebi', 'warning'];
+
+                const textToAnalyze = topNews.join(' ').toLowerCase();
+                
+                posWords.forEach(w => { if (textToAnalyze.includes(w)) score += 1; });
+                negWords.forEach(w => { if (textToAnalyze.includes(w)) score -= 1.5; }); // Negative news weighs more
+
+                let rating = 'B'; // Neutral
+                let badgeColor = '#3b82f6'; // Blue
+                let summary = "Neutral signals. Standard momentum.";
+                
+                if (score >= 2) { 
+                    rating = 'A+'; 
+                    badgeColor = '#10b981'; // Green 
+                    summary = "Strong positive catalysts detected!";
+                } else if (score >= 1) { 
+                    rating = 'A'; 
+                    badgeColor = '#10b981'; 
+                    summary = "Favorable news coverage.";
+                } else if (score <= -1.5) { 
+                    rating = 'C'; 
+                    badgeColor = '#ef4444'; // Red
+                    summary = "Warning: Negative sentiment detected.";
+                } else if (score <= -0.5) {
+                    rating = 'B-';
+                    badgeColor = '#f59e0b'; // Orange
+                    summary = "Mixed/Slightly negative sentiment.";
+                }
+
+                results[symbol] = {
+                    rating,
+                    badgeColor,
+                    summary,
+                    news: topNews
+                };
+            } catch (e) {
+                console.error(`Failed to analyze ${symbol}:`, e.message);
+                results[symbol] = { rating: 'N/A', badgeColor: '#6b7280', summary: 'Analysis failed.', news: [] };
+            }
+        }));
+
+        res.json({ success: true, analysis: results });
+    } catch (err) {
+        console.error('❌ Deep Scan Failed:', err.message);
         res.status(500).json({ success: false, error: err.message });
     }
 });
