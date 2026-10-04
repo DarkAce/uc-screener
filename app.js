@@ -340,7 +340,7 @@ function renderStocks() {
         const displayPrice = s.ucSession1 ? s.price : (s.closeSession2 || s.price);
 
         return `
-            <div class="stock-card ${isConsecutive2 ? 'consecutive-card' : ''}" style="animation-delay: ${i * 0.05}s" data-symbol="${s.symbol}" onclick="openStockDetail('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')">
+            <div class="stock-card ${isConsecutive2 ? 'consecutive-card' : ''}" tabindex="0" role="button" aria-label="${s.name || s.symbol} stock details" onkeydown="if(event.key==='Enter') openStockDetail('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')" style="animation-delay: ${i * 0.05}s" data-symbol="${s.symbol}" onclick="openStockDetail('${s.symbol}', '${(s.name || s.symbol).replace(/'/g, "\\'")}')">
                 <div class="card-highlight"></div>
                 ${isConsecutive5 ? '<div class="fire-badge">🚀 5-Day UC</div>' : (isConsecutive3 ? '<div class="fire-badge">🔥🔥 3-Day UC</div>' : (isConsecutive2 ? '<div class="fire-badge">🔥 2-Day UC</div>' : ''))}
                 <div class="card-header">
