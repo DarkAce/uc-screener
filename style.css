@@ -1257,3 +1257,5 @@ body { overflow: hidden; /* Prevent body scroll, scroll main area instead */ }
 .tabs { display: none !important; }
 .app-container { padding: 0; max-width: 100%; }
 .stats-bar { display: none !important; } /* We moved it to metrics-strip */
+
+@media (max-width: 768px) { .app-layout { display: flex; flex-direction: column; height: 100dvh; } .sidebar { width: 100%; height: auto; flex-direction: row; padding: 0.5rem; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--card-border); } .sidebar-nav { display: flex; flex-direction: row; gap: 0.5rem; white-space: nowrap; } .nav-section { display: flex; margin: 0; align-items: center; } .nav-section-title { display: none; } .tab-btn { width: auto; margin: 0; padding: 0.5rem; } .sidebar-header, .sidebar-footer { display: none; } .top-bar { flex-direction: column; align-items: flex-start; padding: 1rem; gap: 1rem; } .top-bar-right { width: 100%; justify-content: space-between; } .metrics-strip { flex-wrap: wrap; } .controls-bar { width: 100%; flex-wrap: wrap; } .main-area { height: auto; flex: 1; } }
