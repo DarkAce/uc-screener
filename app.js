@@ -397,6 +397,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const swingContainer = document.getElementById('swing-container');
         const portfolioContainer = document.getElementById('portfolio-container');
         const earningsContainer = document.getElementById('earnings-container');
+        const earningsRefreshBtn = document.getElementById('earnings-refresh-btn');
         
         // Hide all containers
         stocksContainer.style.display = 'none';
@@ -406,6 +407,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         if (portfolioContainer) portfolioContainer.style.display = 'none';
         if (earningsContainer) earningsContainer.style.display = 'none';
         document.getElementById('deep-scan-btn').style.display = 'none';
+        if (earningsRefreshBtn) earningsRefreshBtn.style.display = 'none';
 
         if (currentTab === 'ipo') {
             ipoContainer.style.display = 'block';
@@ -423,6 +425,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             fetchPortfolio();
         } else if (currentTab === 'earnings') {
             if (earningsContainer) earningsContainer.style.display = 'block';
+            if (earningsRefreshBtn) earningsRefreshBtn.style.display = 'flex';
             fetchEarningsData();
         } else {
             document.getElementById('deep-scan-btn').style.display = 'flex';
