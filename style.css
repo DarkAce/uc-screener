@@ -4,28 +4,28 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 :root {
-    --bg-dark: #000000;
-    --bg-surface: #0a0a0a;
-    --card-bg: #111111;
-    --card-bg-hover: #161616;
+    --bg-dark: #0f1115;
+    --bg-surface: #16181d;
+    --card-bg: #1c1f26;
+    --card-bg-hover: #22252e;
     --card-border: rgba(255, 255, 255, 0.08);
-    --card-border-highlight: rgba(255, 255, 255, 0.15);
+    --card-border-highlight: rgba(255, 255, 255, 0.16);
     
-    --primary-accent: #e2e2e2;
-    --primary-accent-dim: rgba(255, 255, 255, 0.05);
+    --primary-accent: #e2e4e9;
+    --primary-accent-dim: rgba(255, 255, 255, 0.06);
     
-    --secondary-accent: #8e8ea0;
+    --secondary-accent: #8b92a5;
     
-    --positive: #22c55e;
-    --positive-dim: rgba(34, 197, 94, 0.1);
+    --positive: #16c784;
+    --positive-dim: rgba(22, 199, 132, 0.1);
     
-    --warning: #f59e0b;
-    --warning-dim: rgba(245, 158, 11, 0.1);
+    --warning: #f5b028;
+    --warning-dim: rgba(245, 176, 40, 0.1);
     
-    --danger: #ef4444;
+    --danger: #ea3943;
     
-    --text-main: #eeeeee;
-    --text-muted: #a0a0a0;
+    --text-main: #f1f2f5;
+    --text-muted: #9ba1b0;
     
     --radius: 8px;
     --radius-lg: 12px;
@@ -1271,7 +1271,7 @@ body { overflow: hidden; /* Prevent body scroll, scroll main area instead */ }
     margin-bottom: 2rem;
 }
 .earnings-date-header {
-    background: #0f0f12;
+    background: var(--bg-dark);
     padding: 0.75rem 1.25rem;
     font-size: 0.85rem;
     font-weight: 600;

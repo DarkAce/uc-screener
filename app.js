@@ -15,6 +15,15 @@ let currentSearch = '';
 let currentSort = 'change';
 
 // ─── Utilities ───────────────────────────────────────────────────────
+const formatIndianNumber = (num) => {
+    if (!num) return '—';
+    const x = num.toString().split('.');
+    let lastThree = x[0].substring(x[0].length - 3);
+    const otherNumbers = x[0].substring(0, x[0].length - 3);
+    if (otherNumbers !== '') lastThree = ',' + lastThree;
+    const res = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+    return x.length > 1 ? res + '.' + x[1] : res;
+};
 const formatCurrency = (val) => '₹' + parseFloat(val).toFixed(2);
 const formatVolume = (num) => {
     num = parseInt(num) || 0;
