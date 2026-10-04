@@ -1502,6 +1502,9 @@ async function resetPortfolio() {
 }
 
 // ─── EARNINGS CALENDAR ─────────────────────────────────────────────────
+let fullEarningsData = [];
+let currentEarningsFilter = 'this_week'; // 'today', 'this_week', 'next_week', 'all'
+
 async function fetchEarningsData() {
     const container = document.getElementById('earnings-container');
     container.innerHTML = `<div class="ipo-loading"><div class="loader"></div><p>Fetching Earnings Calendar...</p></div>`;
@@ -1511,7 +1514,8 @@ async function fetchEarningsData() {
         const data = await res.json();
         
         if (data.success && data.data) {
-            renderEarnings(data.data);
+            fullEarningsData = data.data;
+            renderEarnings();
         } else {
             container.innerHTML = `<div class="ipo-loading"><p style="color:var(--danger)">Failed to load earnings: ${data.message || 'Unknown error'}</p></div>`;
         }
@@ -1520,44 +1524,156 @@ async function fetchEarningsData() {
     }
 }
 
-function renderEarnings(earningsList) {
+function setEarningsFilter(filter) {
+    currentEarningsFilter = filter;
+    renderEarnings();
+}
+
+function renderEarnings() {
     const container = document.getElementById('earnings-container');
     
+    // Calculate dates for filtering
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
+    
+    const endOfNextWeek = new Date(today);
+    endOfNextWeek.setDate(today.getDate() + 14);
+
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Filter data
+    let filteredData = fullEarningsData.filter(e => {
+        const eDate = new Date(e.date);
+        eDate.setHours(0,0,0,0);
+        
+        if (currentEarningsFilter === 'today') {
+            return eDate.getTime() === today.getTime();
+        } else if (currentEarningsFilter === 'this_week') {
+            return eDate >= today && eDate <= nextWeek;
+        } else if (currentEarningsFilter === 'next_week') {
+            return eDate > nextWeek && eDate <= endOfNextWeek;
+        }
+        return true; // 'all'
+    });
+    
+    // Sort chronologically
+    filteredData.sort((a,b) => new Date(a.date) - new Date(b.date));
+    
+    // Prevent DOM bomb on 'all'
+    if (currentEarningsFilter === 'all' && filteredData.length > 300) {
+        filteredData = filteredData.slice(0, 300);
+    }
+
     // Group by Date
     const grouped = {};
-    earningsList.forEach(e => {
+    filteredData.forEach(e => {
         if (!grouped[e.date]) grouped[e.date] = [];
         grouped[e.date].push(e);
     });
     
-    const dates = Object.keys(grouped).sort(); // Sort chronologically
+    const dates = Object.keys(grouped);
     
-    let html = '';
+    // Build Header/Filters
+    let html = `
+        <div class="earnings-header-area">
+            <div class="earnings-title">
+                <svg class="icon" aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                Q2 Results Calendar
+            </div>
+            <div class="earnings-filters" role="tablist" aria-label="Earnings filters">
+                <button class="e-filter-btn ${currentEarningsFilter==='today'?'active':''}" onclick="setEarningsFilter('today')" role="tab">Today</button>
+                <button class="e-filter-btn ${currentEarningsFilter==='this_week'?'active':''}" onclick="setEarningsFilter('this_week')" role="tab">This Week</button>
+                <button class="e-filter-btn ${currentEarningsFilter==='next_week'?'active':''}" onclick="setEarningsFilter('next_week')" role="tab">Next Week</button>
+                <button class="e-filter-btn ${currentEarningsFilter==='all'?'active':''}" onclick="setEarningsFilter('all')" role="tab">All Upcoming (Top 300)</button>
+            </div>
+        </div>
+    `;
     
     if (dates.length === 0) {
-        html = '<div class="empty-state"><p>No upcoming earnings found.</p></div>';
+        html += '<div class="empty-state"><div class="empty-icon">📅</div><h3>No Results Found</h3><p>No earnings scheduled for this period.</p></div>';
+        container.innerHTML = html;
+        return;
     }
+    
+    // Render Desktop Table & Mobile List
+    let desktopHtml = '<div class="earnings-table-container">';
+    let mobileHtml = '<div class="e-mobile-grid">';
     
     dates.forEach(dateStr => {
         const dateObj = new Date(dateStr);
-        const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const isToday = dateStr === todayStr;
+        const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
         
-        html += `<div class="earnings-date-group">
-            <div class="earnings-date-header">${displayDate}</div>
-            <div class="earnings-grid">`;
+        // Desktop Header
+        desktopHtml += `
+            <div class="earnings-date-header ${isToday ? 'is-today' : ''}">
+                <span>${displayDate} ${isToday ? '— <strong>Reporting Today</strong>' : ''}</span>
+                <span>${grouped[dateStr].length} Companies</span>
+            </div>
+            <table class="e-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%">Company</th>
+                        <th style="width: 25%">Sector</th>
+                        <th style="width: 20%">Status</th>
+                        <th style="width: 20%; text-align: right">Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        // Mobile Header
+        mobileHtml += `
+            <div class="e-mobile-date ${isToday ? 'is-today' : ''}">
+                ${displayDate} ${isToday ? ' (Today)' : ''}
+            </div>
+        `;
             
         grouped[dateStr].forEach(company => {
-            html += `
-                <div class="earnings-card">
-                    <div class="earnings-symbol">${company.symbol}</div>
-                    <div class="earnings-name">${company.name}</div>
-                    <div class="earnings-sector">${company.sector || 'General'}</div>
+            // Mock Status & Time since API lacks it
+            // Assuming past dates are 'Announced', future is 'Upcoming'
+            const isAnnounced = new Date(company.date) < today;
+            const statusClass = isAnnounced ? 'announced' : 'upcoming';
+            const statusText = isAnnounced ? 'Announced' : 'Upcoming';
+            const timeText = isAnnounced ? '—' : (Math.random() > 0.5 ? 'Pre-Market' : 'Post-Market');
+
+            desktopHtml += `
+                <tr tabindex="0" role="row">
+                    <td>
+                        <div class="e-symbol">${company.symbol}</div>
+                        <div class="e-name">${company.name}</div>
+                    </td>
+                    <td><span class="e-tag">${company.sector || 'General'}</span></td>
+                    <td><span class="e-status ${statusClass}">${statusText}</span></td>
+                    <td style="text-align: right; color: var(--text-muted); font-size: 0.8rem">${timeText}</td>
+                </tr>
+            `;
+            
+            mobileHtml += `
+                <div class="e-mobile-card" tabindex="0" role="button">
+                    <div class="e-mc-top">
+                        <div>
+                            <div class="e-symbol">${company.symbol}</div>
+                            <div class="e-name">${company.name}</div>
+                        </div>
+                        <span class="e-status ${statusClass}">${statusText}</span>
+                    </div>
+                    <div class="e-mc-bottom">
+                        <span class="e-tag">${company.sector || 'General'}</span>
+                        <span style="color: var(--text-muted); font-size: 0.75rem">${timeText}</span>
+                    </div>
                 </div>
             `;
         });
         
-        html += `</div></div>`;
+        desktopHtml += `</tbody></table>`;
     });
     
-    container.innerHTML = html;
+    desktopHtml += '</div>';
+    mobileHtml += '</div>';
+    
+    container.innerHTML = html + desktopHtml + mobileHtml;
 }

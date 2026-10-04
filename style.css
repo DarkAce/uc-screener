@@ -1214,3 +1214,151 @@ body { overflow: hidden; /* Prevent body scroll, scroll main area instead */ }
     outline: 2px solid var(--primary-accent);
     outline-offset: 4px;
 }
+
+/* ─── Earnings Calendar ────────────────────────────────────────────── */
+.earnings-header-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.earnings-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.earnings-filters {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+}
+.earnings-filters::-webkit-scrollbar { display: none; }
+.e-filter-btn {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-family: var(--font-sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--transition);
+}
+.e-filter-btn:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+}
+.e-filter-btn.active {
+    background: var(--primary-accent-dim);
+    border-color: var(--card-border-highlight);
+    color: var(--primary-accent);
+}
+
+/* Desktop Table Layout */
+.earnings-table-container {
+    background: var(--bg-surface);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+.earnings-date-header {
+    background: #0f0f12;
+    padding: 0.75rem 1.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--card-border);
+    border-top: 1px solid var(--card-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: space-between;
+}
+.earnings-table-container:first-child .earnings-date-header { border-top: none; }
+.earnings-date-header.is-today {
+    background: rgba(34, 197, 94, 0.08);
+    color: var(--positive);
+    border-bottom-color: rgba(34, 197, 94, 0.2);
+}
+
+.e-table { width: 100%; border-collapse: collapse; text-align: left; }
+.e-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--card-border);
+    background: var(--bg-surface);
+}
+.e-table td {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-main);
+    font-size: 0.88rem;
+}
+.e-table tr:hover td { background: rgba(255,255,255,0.02); }
+.e-table tr:last-child td { border-bottom: none; }
+
+.e-symbol { font-family: var(--font-mono); font-weight: 600; font-size: 0.95rem; }
+.e-name { color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
+.e-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+}
+.e-status {
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.e-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--warning); }
+.e-status.announced::before { background: var(--positive); }
+
+/* Mobile Cards Layout (Hidden on Desktop) */
+.e-mobile-grid { display: none; }
+
+@media (max-width: 768px) {
+    .earnings-table-container { display: none; }
+    .e-mobile-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+    .e-mobile-date {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-main);
+        padding: 1rem 0 0.5rem;
+        border-bottom: 1px solid var(--card-border);
+        position: sticky;
+        top: 0;
+        background: var(--bg-dark);
+        z-index: 10;
+    }
+    .e-mobile-date.is-today { color: var(--positive); border-color: rgba(34, 197, 94, 0.3); }
+    
+    .e-mobile-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        padding: 1rem;
+    }
+    .e-mc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+    .e-mc-bottom { display: flex; justify-content: space-between; align-items: center; }
+}
