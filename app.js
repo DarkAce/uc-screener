@@ -459,7 +459,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             fetchEarningsData();
         } else {
             document.getElementById('deep-scan-btn').style.display = 'flex';
-            stocksContainer.style.display = 'block';
+            stocksContainer.style.display = 'grid';
             // Restore stat-fire card's original UC styling
             const fireCard = document.querySelector('.stat-fire');
             fireCard.style.background = '';
