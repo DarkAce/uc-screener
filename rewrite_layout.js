@@ -1,45 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UC Scanner - Upper Circuit Stock Screener</title>
-    <meta name="description" content="Real-time NSE stock screener for upper circuit (UC) stocks. Identifies stocks hitting consecutive upper circuits using actual bhavcopy data.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <div class="background-pattern"></div>
-    
+const fs = require('fs');
+
+const indexHtmlPath = 'index.html';
+let html = fs.readFileSync(indexHtmlPath, 'utf8');
+
+// Replace everything inside body with the new sidebar layout structure
+const newBody = `
     <div class="app-layout">
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h1>UC Scanner</h1>
-                <span class="session-dates" id="session-dates">NSE India</span>
+                <span class="session-dates" id="session-dates">v3 Terminal</span>
             </div>
             
             <nav class="sidebar-nav">
                 <div class="nav-section">
                     <div class="nav-section-title">Dashboards</div>
-                    <button class="tab-btn active" data-tab="portfolio"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg> Portfolio</button>
-                    <button class="tab-btn" data-tab="ipo"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M2 12h4l3-9 5 18 3-9h5"></path></svg> IPO Center</button>
+                    <button class="tab-btn active" data-tab="portfolio"><span class="icon">💼</span> Portfolio</button>
+                    <button class="tab-btn" data-tab="ipo"><span class="icon">🚀</span> IPO Center</button>
                 </div>
                 
                 <div class="nav-section">
                     <div class="nav-section-title">Screeners</div>
-                    <button class="tab-btn" data-tab="consecutive"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg> 2-Day UC</button>
-                    <button class="tab-btn" data-tab="3day"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 3-Day UC</button>
-                    <button class="tab-btn" data-tab="5day"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon><circle cx="12" cy="12" r="1"></circle></svg> 5-Day UC</button>
-                    <button class="tab-btn" data-tab="today"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Session 1 UC</button>
-                    <button class="tab-btn" data-tab="yesterday"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="20" x2="18" y2="4"></line><line x1="12" y1="20" x2="12" y2="10"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg> Session 2 UC</button>
-                    <button class="tab-btn" data-tab="momentum"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg> Momentum</button>
-                    <button class="tab-btn" data-tab="swing"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Swing Ideas</button>
+                    <button class="tab-btn" data-tab="consecutive"><span class="icon">🔥</span> 2-Day UC</button>
+                    <button class="tab-btn" data-tab="today"><span class="icon">📊</span> Session 1 UC</button>
+                    <button class="tab-btn" data-tab="yesterday"><span class="icon">📈</span> Session 2 UC</button>
+                    <button class="tab-btn" data-tab="momentum"><span class="icon">⚡</span> Momentum</button>
+                    <button class="tab-btn" data-tab="swing"><span class="icon">🎯</span> Swing Ideas</button>
                 </div>
                 
                 <div class="nav-section">
                     <div class="nav-section-title">Events</div>
-                    <button class="tab-btn" data-tab="earnings"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg> Q2 Results</button>
+                    <button class="tab-btn" data-tab="earnings"><span class="icon">📅</span> Q2 Results</button>
                 </div>
             </nav>
             
@@ -117,7 +109,123 @@
             </main>
         </div>
     </div>
+`;
 
-    <script src="app.js"></script>
-</body>
-</html>
+html = html.replace(/<div class="app-container">[\s\S]*?<\/main>\s*<\/div>/, newBody);
+fs.writeFileSync('index.html', html);
+
+
+// Now inject CSS for the Sidebar layout
+const cssAddition = `
+/* ─── SIDEBAR LAYOUT (v3) ──────────────────────────────────────────── */
+body { overflow: hidden; /* Prevent body scroll, scroll main area instead */ }
+
+.app-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    height: 100vh;
+    background-color: var(--bg-dark);
+}
+
+.sidebar {
+    background: var(--bg-surface);
+    border-right: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1rem;
+}
+
+.sidebar-header { margin-bottom: 2rem; padding: 0 0.5rem; }
+.sidebar-header h1 { font-size: 1.4rem; }
+
+.sidebar-nav { flex: 1; overflow-y: auto; }
+.nav-section { margin-bottom: 1.5rem; }
+.nav-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    padding: 0 0.5rem;
+    font-weight: 700;
+}
+
+.tab-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.65rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    margin-bottom: 0.25rem;
+}
+.tab-btn .icon { margin-right: 10px; font-size: 1.1rem; }
+.tab-btn:hover { background: var(--card-bg-hover); color: var(--text-main); }
+.tab-btn.active {
+    background: var(--primary-accent-dim);
+    color: var(--primary-accent);
+    font-weight: 600;
+}
+
+.sidebar-footer {
+    padding-top: 1rem;
+    border-top: 1px solid var(--card-border);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.main-area {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.top-bar {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-dark);
+    z-index: 10;
+}
+
+#page-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.top-bar-left { display: flex; flex-direction: column; }
+.top-bar-right { display: flex; align-items: center; gap: 1rem; }
+
+/* Redesign metrics strip to fit in top bar */
+.metrics-strip { display: flex; gap: 1rem; }
+.stat-card {
+    background: transparent; border: none; padding: 0; box-shadow: none; backdrop-filter: none;
+    display: flex; flex-direction: row; align-items: center; gap: 0.5rem; margin: 0;
+}
+.stat-value { font-size: 1rem; font-weight: 700; color: var(--text-main); }
+.stat-label { font-size: 0.7rem; color: var(--text-muted); }
+
+.content-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+}
+
+/* Hide original .tabs and .app-container */
+.tabs { display: none !important; }
+.app-container { padding: 0; max-width: 100%; }
+.stats-bar { display: none !important; } /* We moved it to metrics-strip */
+`;
+
+fs.appendFileSync('style.css', cssAddition);
+console.log('Layout patched!');
