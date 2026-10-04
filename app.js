@@ -395,44 +395,38 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const ipoContainer = document.getElementById('ipo-container');
         const momentumContainer = document.getElementById('momentum-container');
         const swingContainer = document.getElementById('swing-container');
+        const portfolioContainer = document.getElementById('portfolio-container');
+        const earningsContainer = document.getElementById('earnings-container');
         
+        // Hide all containers
+        stocksContainer.style.display = 'none';
+        ipoContainer.style.display = 'none';
+        momentumContainer.style.display = 'none';
+        swingContainer.style.display = 'none';
+        if (portfolioContainer) portfolioContainer.style.display = 'none';
+        if (earningsContainer) earningsContainer.style.display = 'none';
+        document.getElementById('deep-scan-btn').style.display = 'none';
+
         if (currentTab === 'ipo') {
-            document.getElementById('deep-scan-btn').style.display = 'none';
-            stocksContainer.style.display = 'none';
-            momentumContainer.style.display = 'none';
-            swingContainer.style.display = 'none';
             ipoContainer.style.display = 'block';
-            if (ipoData.length === 0) {
-                fetchIPOData();
-            } else {
-                renderIPOs();
-                updateIPOStats();
-            }
+            if (ipoData.length === 0) fetchIPOData();
+            else { renderIPOs(); updateIPOStats(); }
         } else if (currentTab === 'momentum') {
-            document.getElementById('deep-scan-btn').style.display = 'none';
-            stocksContainer.style.display = 'none';
-            ipoContainer.style.display = 'none';
-            swingContainer.style.display = 'none';
             momentumContainer.style.display = 'block';
-            if (momentumData.length === 0) {
-                fetchMomentumData();
-            } else {
-                renderMomentum();
-                updateMomentumStats();
-            }
+            if (momentumData.length === 0) fetchMomentumData();
+            else { renderMomentum(); updateMomentumStats(); }
         } else if (currentTab === 'swing') {
-            document.getElementById('deep-scan-btn').style.display = 'none';
-            stocksContainer.style.display = 'none';
-            ipoContainer.style.display = 'none';
-            momentumContainer.style.display = 'none';
             swingContainer.style.display = 'grid';
             renderSwingStrategies();
+        } else if (currentTab === 'portfolio') {
+            if (portfolioContainer) portfolioContainer.style.display = 'block';
+            fetchPortfolio();
+        } else if (currentTab === 'earnings') {
+            if (earningsContainer) earningsContainer.style.display = 'block';
+            fetchEarningsData();
         } else {
             document.getElementById('deep-scan-btn').style.display = 'flex';
-            ipoContainer.style.display = 'none';
-            momentumContainer.style.display = 'none';
-            swingContainer.style.display = 'none';
-            stocksContainer.style.display = 'grid';
+            stocksContainer.style.display = 'block';
             // Restore stat-fire card's original UC styling
             const fireCard = document.querySelector('.stat-fire');
             fireCard.style.background = '';
@@ -1453,4 +1447,65 @@ async function resetPortfolio() {
     } catch (err) {
         console.error("Reset failed", err);
     }
+}
+
+// ─── EARNINGS CALENDAR ─────────────────────────────────────────────────
+async function fetchEarningsData() {
+    const container = document.getElementById('earnings-container');
+    container.innerHTML = `<div class="ipo-loading"><div class="loader"></div><p>Fetching Earnings Calendar...</p></div>`;
+    
+    try {
+        const res = await fetch('/api/earnings');
+        const data = await res.json();
+        
+        if (data.success && data.data) {
+            renderEarnings(data.data);
+        } else {
+            container.innerHTML = `<div class="ipo-loading"><p style="color:var(--danger)">Failed to load earnings: ${data.message || 'Unknown error'}</p></div>`;
+        }
+    } catch (err) {
+        container.innerHTML = `<div class="ipo-loading"><p style="color:var(--danger)">Connection error.</p></div>`;
+    }
+}
+
+function renderEarnings(earningsList) {
+    const container = document.getElementById('earnings-container');
+    
+    // Group by Date
+    const grouped = {};
+    earningsList.forEach(e => {
+        if (!grouped[e.date]) grouped[e.date] = [];
+        grouped[e.date].push(e);
+    });
+    
+    const dates = Object.keys(grouped).sort(); // Sort chronologically
+    
+    let html = '';
+    
+    if (dates.length === 0) {
+        html = '<div class="empty-state"><p>No upcoming earnings found.</p></div>';
+    }
+    
+    dates.forEach(dateStr => {
+        const dateObj = new Date(dateStr);
+        const displayDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        
+        html += `<div class="earnings-date-group">
+            <div class="earnings-date-header">${displayDate}</div>
+            <div class="earnings-grid">`;
+            
+        grouped[dateStr].forEach(company => {
+            html += `
+                <div class="earnings-card">
+                    <div class="earnings-symbol">${company.symbol}</div>
+                    <div class="earnings-name">${company.name}</div>
+                    <div class="earnings-sector">${company.sector || 'General'}</div>
+                </div>
+            `;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    container.innerHTML = html;
 }

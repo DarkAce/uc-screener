@@ -1,0 +1,25 @@
+{
+  "lastUpdated": "2026-10-04T12:00:00Z",
+  "earnings": [
+    { "date": "2026-10-08", "symbol": "TCS", "name": "Tata Consultancy Services Ltd", "sector": "IT" },
+    { "date": "2026-10-09", "symbol": "INFY", "name": "Infosys Ltd", "sector": "IT" },
+    { "date": "2026-10-09", "symbol": "HDFCBANK", "name": "HDFC Bank Ltd", "sector": "Banking" },
+    { "date": "2026-10-12", "symbol": "HCLTECH", "name": "HCL Technologies Ltd", "sector": "IT" },
+    { "date": "2026-10-12", "symbol": "WIPRO", "name": "Wipro Ltd", "sector": "IT" },
+    { "date": "2026-10-13", "symbol": "RELIANCE", "name": "Reliance Industries Ltd", "sector": "Conglomerate" },
+    { "date": "2026-10-13", "symbol": "ICICIBANK", "name": "ICICI Bank Ltd", "sector": "Banking" },
+    { "date": "2026-10-15", "symbol": "ITC", "name": "ITC Ltd", "sector": "FMCG" },
+    { "date": "2026-10-15", "symbol": "HUL", "name": "Hindustan Unilever Ltd", "sector": "FMCG" },
+    { "date": "2026-10-16", "symbol": "LT", "name": "Larsen & Toubro Ltd", "sector": "Infrastructure" },
+    { "date": "2026-10-16", "symbol": "AXISBANK", "name": "Axis Bank Ltd", "sector": "Banking" },
+    { "date": "2026-10-19", "symbol": "SBIN", "name": "State Bank of India", "sector": "Banking" },
+    { "date": "2026-10-19", "symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank", "sector": "Banking" },
+    { "date": "2026-10-20", "symbol": "BHARTIARTL", "name": "Bharti Airtel Ltd", "sector": "Telecom" },
+    { "date": "2026-10-20", "symbol": "ASIANPAINT", "name": "Asian Paints Ltd", "sector": "Consumer Goods" },
+    { "date": "2026-10-22", "symbol": "MARUTI", "name": "Maruti Suzuki India Ltd", "sector": "Automobile" },
+    { "date": "2026-10-22", "symbol": "TATAMOTORS", "name": "Tata Motors Ltd", "sector": "Automobile" },
+    { "date": "2026-10-23", "symbol": "SUNPHARMA", "name": "Sun Pharmaceutical Ind.", "sector": "Pharma" },
+    { "date": "2026-10-23", "symbol": "M&M", "name": "Mahindra & Mahindra Ltd", "sector": "Automobile" },
+    { "date": "2026-10-27", "symbol": "TITAN", "name": "Titan Company Ltd", "sector": "Consumer Goods" }
+  ]
+}

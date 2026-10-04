@@ -930,6 +930,22 @@ app.post('/api/analyze-uc', async (req, res) => {
     }
 });
 
+// ─── API: Earnings Calendar ────────────────────────────────────────────
+app.get('/api/earnings', (req, res) => {
+    try {
+        const earningsPath = path.join(DATA_DIR, 'earnings.json');
+        if (fs.existsSync(earningsPath)) {
+            const data = JSON.parse(fs.readFileSync(earningsPath, 'utf8'));
+            res.json({ success: true, data: data.earnings, lastUpdated: data.lastUpdated });
+        } else {
+            res.json({ success: true, data: [], message: 'No earnings data found.' });
+        }
+    } catch (err) {
+        console.error('Error fetching earnings data:', err);
+        res.status(500).json({ success: false, error: 'Failed to fetch earnings' });
+    }
+});
+
 // ─── API: Paper Trading Portfolio ──────────────────────────────────────
 app.get('/api/portfolio', (req, res) => {
     res.json(getPortfolio());
