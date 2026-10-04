@@ -388,8 +388,9 @@ function renderStocks() {
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        currentTab = e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab;
+        const targetBtn = e.target.closest('.tab-btn');
+        if (targetBtn) targetBtn.classList.add('active');
+        currentTab = targetBtn ? targetBtn.dataset.tab : null;
         
         // Update Title and Contextual UI
         const pageTitle = document.getElementById('page-title');
