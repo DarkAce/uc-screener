@@ -10,7 +10,7 @@ let momentumData = [];
 let isLiveMode = false;
 let sessionInfo = { session1: null, session2: null };
 let deepScanData = {};
-let currentTab = 'consecutive';
+let currentTab = 'portfolio';
 let currentSearch = '';
 let currentSort = 'change';
 
@@ -400,8 +400,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         
         // Defaults
         metricsStrip.style.display = 'none';
-        searchInput.style.display = 'none';
-        sortSelect.style.display = 'none';
+        document.querySelector('.controls-bar').style.display = 'none';
+        document.getElementById('generate-btn').style.display = 'none';
         
         if (currentTab === 'portfolio') {
             pageTitle.textContent = 'Portfolio Dashboard';
@@ -417,8 +417,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             // Upper Circuit screener tabs
             pageTitle.textContent = 'Upper Circuit Screener';
             metricsStrip.style.display = 'flex';
-            searchInput.style.display = 'block';
-            sortSelect.style.display = 'block';
+            document.querySelector('.controls-bar').style.display = 'flex';
+            document.getElementById('generate-btn').style.display = 'inline-flex';
         }
 
         
@@ -536,7 +536,20 @@ document.getElementById('refresh-btn')?.addEventListener('click', () => {
 });
 
 // ─── Init ────────────────────────────────────────────────────────────
-// Show welcome state — user clicks "Fetch UC Data" to load
+// Portfolio empty state
+{
+    const pc = document.getElementById('portfolio-container');
+    if (pc) {
+        pc.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">💼</div>
+                <h3>Your Portfolio is Empty</h3>
+                <p>Track your investments here.</p>
+            </div>
+        `;
+    }
+}
+// Show welcome state
 {
     const c = document.getElementById('stocks-container');
     c.innerHTML = `
@@ -547,6 +560,11 @@ document.getElementById('refresh-btn')?.addEventListener('click', () => {
         </div>
     `;
 }
+// Hide controls by default since we start on portfolio
+setTimeout(() => {
+    document.querySelector('.controls-bar').style.display = 'none';
+    document.getElementById('generate-btn').style.display = 'none';
+}, 0);
 
 // ═══════════════════════════════════════════════════════════════════════
 // Stock Detail Modal with 10-Day Volume + Price Chart
