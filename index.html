@@ -10,109 +10,112 @@
 </head>
 <body>
     <div class="background-pattern"></div>
-    <div class="app-container">
-        <header>
-            <div class="header-content">
-                <div>
-                    <h1>UC Scanner</h1>
-                    <p class="subtitle">Upper Circuit Stock Screener</p>
-                    <p class="session-dates" id="session-dates">Click below to fetch live data</p>
+    
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>UC Scanner</h1>
+                <span class="session-dates" id="session-dates">v3 Terminal</span>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Dashboards</div>
+                    <button class="tab-btn active" data-tab="portfolio"><span class="icon">💼</span> Portfolio</button>
+                    <button class="tab-btn" data-tab="ipo"><span class="icon">🚀</span> IPO Center</button>
                 </div>
-                <div class="header-right">
-                    <button id="generate-btn" class="generate-btn" onclick="fetchLiveData()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                        Fetch UC Data
-                    </button>
-                    <div class="status-container">
-                    <div class="last-updated">
-                        <span id="time-display"></span>
-                        <button id="refresh-btn" class="refresh-btn" title="Refresh data" style="display:none">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="23 4 23 10 17 10"></polyline>
-                                <polyline points="1 20 1 14 7 14"></polyline>
-                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-                            </svg>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Screeners</div>
+                    <button class="tab-btn" data-tab="consecutive"><span class="icon">🔥</span> 2-Day UC</button>
+                    <button class="tab-btn" data-tab="today"><span class="icon">📊</span> Session 1 UC</button>
+                    <button class="tab-btn" data-tab="yesterday"><span class="icon">📈</span> Session 2 UC</button>
+                    <button class="tab-btn" data-tab="momentum"><span class="icon">⚡</span> Momentum</button>
+                    <button class="tab-btn" data-tab="swing"><span class="icon">🎯</span> Swing Ideas</button>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Events</div>
+                    <button class="tab-btn" data-tab="earnings"><span class="icon">📅</span> Q2 Results</button>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="status-container">
+                    <span class="cors-note">Live Mode</span>
+                    <span id="time-display"></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="main-area">
+            <!-- Dynamic Top Bar -->
+            <header class="top-bar">
+                <div class="top-bar-left">
+                    <h2 id="page-title">Portfolio Dashboard</h2>
+                    <div class="metrics-strip">
+                        <div class="stat-card stat-fire">
+                            <div class="stat-value" id="stat-consecutive">0</div>
+                            <div class="stat-label">Consecutive UC</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-today">0</div>
+                            <div class="stat-label" id="stat-today-label">Session 1 UC</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-yesterday">0</div>
+                            <div class="stat-label" id="stat-yesterday-label">Session 2 UC</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="top-bar-right">
+                    <div class="controls-bar">
+                        <div class="search-box">
+                            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="text" id="search-input" placeholder="Search symbol...">
+                        </div>
+                        <div class="sort-box">
+                            <select id="sort-select">
+                                <option value="change">Sort by % Change</option>
+                                <option value="volume">Sort by Volume</option>
+                                <option value="alpha">Sort Alphabetically</option>
+                            </select>
+                        </div>
+                        <button id="deep-scan-btn" class="deep-scan-btn" style="display: none;">
+                            🧠 Deep Scan
+                        </button>
+                        <button id="earnings-refresh-btn" class="deep-scan-btn" style="display: none;" onclick="fetchEarningsData()">
+                            🔄 Refresh Data
                         </button>
                     </div>
-                    <div class="cors-note">Connecting...</div>
+                    <button id="generate-btn" class="generate-btn" onclick="fetchLiveData()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        Fetch UC Data
+                    </button>
+                </div>
+            </header>
+
+            <!-- Container Injection -->
+            <main class="content-scroll-area">
+                <div id="stocks-container" class="stocks-grid" style="display: none;">
+                    <div class="empty-state">
+                        <div class="empty-icon">📈</div>
+                        <h3>Ready to Scan</h3>
+                        <p>Click "Fetch UC Data" to download the latest Bhavcopy.</p>
                     </div>
                 </div>
-            </div>
-
-            <div class="stats-bar">
-                <div class="stat-card stat-fire">
-                    <div class="stat-value" id="stat-consecutive">0</div>
-                    <div class="stat-label">Consecutive UC 🔥</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-today">0</div>
-                    <div class="stat-label" id="stat-today-label">Session 1 UC</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-yesterday">0</div>
-                    <div class="stat-label" id="stat-yesterday-label">Session 2 UC</div>
-                </div>
-            </div>
-
-            <div class="controls-bar">
-                <div class="search-box">
-                    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" id="search-input" placeholder="Search symbol or name...">
-                </div>
-                <div class="sort-box">
-                    <select id="sort-select">
-                        <option value="change">Sort by % Change</option>
-                        <option value="volume">Sort by Volume</option>
-                        <option value="alpha">Sort Alphabetically</option>
-                    </select>
-                </div>
-                <button id="deep-scan-btn" class="deep-scan-btn" style="display: none;">
-                    🧠 Deep Scan
-                </button>
-                <button id="earnings-refresh-btn" class="deep-scan-btn" style="display: none;" onclick="fetchEarningsData()">
-                    🔄 Refresh Data
-                </button>
-            </div>
-
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="consecutive">2-Day UC 🔥</button>
-                <button class="tab-btn" data-tab="3day">3-Day UC 🔥🔥</button>
-                <button class="tab-btn" data-tab="5day">5-Day UC 🚀</button>
-                <button class="tab-btn" data-tab="today">Session 1 UC</button>
-                <button class="tab-btn" data-tab="yesterday">Session 2 UC</button>
-                <button class="tab-btn" data-tab="ipo">IPO Dashboard 🚀</button>
-                <button class="tab-btn" data-tab="momentum">Momentum 📈</button>
-                <button class="tab-btn" data-tab="swing">Swing Ideas 🎯</button>
-                <button class="tab-btn" data-tab="portfolio">Portfolio 💼</button>
-                <button class="tab-btn" data-tab="earnings">Q2 Results 📅</button>
-            </div>
-        </header>
-
-        <main>
-            <div id="stocks-container" class="stocks-grid">
-                <div class="empty-state">
-                    <div class="empty-icon">📈</div>
-                    <h3>Ready to Scan</h3>
-                    <p>Click "Fetch UC Data" at the top to download the latest Bhavcopy and find Upper Circuit stocks.</p>
-                </div>
-            </div>
-            <div id="ipo-container" class="ipo-table-container" style="display: none;">
-                <!-- IPOs will render here -->
-            </div>
-            <div id="momentum-container" class="ipo-table-container" style="display: none;">
-                <!-- Momentum stocks will render here -->
-            </div>
-            <div id="swing-container" class="swing-grid" style="display: none;">
-                <!-- Swing strategies will render here -->
-            </div>
-            <div id="portfolio-container" class="portfolio-container" style="display: none;">
-                <!-- Portfolio dashboard will render here -->
-            </div>
-            <div id="earnings-container" class="earnings-container" style="display: none;">
-                <!-- Earnings calendar will render here -->
-            </div>
-        </main>
+                <div id="ipo-container" class="ipo-table-container" style="display: none;"></div>
+                <div id="momentum-container" class="ipo-table-container" style="display: none;"></div>
+                <div id="swing-container" class="swing-grid" style="display: none;"></div>
+                <div id="portfolio-container" class="portfolio-container" style="display: block;"></div>
+                <div id="earnings-container" class="earnings-container" style="display: none;"></div>
+            </main>
+        </div>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>

@@ -389,7 +389,37 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
-        currentTab = e.target.dataset.tab;
+        currentTab = e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab;
+        
+        // Update Title and Contextual UI
+        const pageTitle = document.getElementById('page-title');
+        const metricsStrip = document.querySelector('.metrics-strip');
+        const searchInput = document.getElementById('search-input');
+        const sortSelect = document.getElementById('sort-select');
+        
+        // Defaults
+        metricsStrip.style.display = 'none';
+        searchInput.style.display = 'none';
+        sortSelect.style.display = 'none';
+        
+        if (currentTab === 'portfolio') {
+            pageTitle.textContent = 'Portfolio Dashboard';
+        } else if (currentTab === 'ipo') {
+            pageTitle.textContent = 'IPO Center';
+        } else if (currentTab === 'earnings') {
+            pageTitle.textContent = 'Q2 Results Calendar';
+        } else if (currentTab === 'momentum') {
+            pageTitle.textContent = 'Momentum Scans';
+        } else if (currentTab === 'swing') {
+            pageTitle.textContent = 'Swing Trading Ideas';
+        } else {
+            // Upper Circuit screener tabs
+            pageTitle.textContent = 'Upper Circuit Screener';
+            metricsStrip.style.display = 'flex';
+            searchInput.style.display = 'block';
+            sortSelect.style.display = 'block';
+        }
+
         
         const stocksContainer = document.getElementById('stocks-container');
         const ipoContainer = document.getElementById('ipo-container');
