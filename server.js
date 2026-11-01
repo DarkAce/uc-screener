@@ -932,6 +932,231 @@ app.post('/api/analyze-uc', async (req, res) => {
     }
 });
 
+// ─── API: Intraday & Swing Advanced Scanners ────────────────────────────
+let advancedScansCache = null;
+let advancedScansCacheTime = 0;
+const SCANS_TTL = 3 * 60 * 1000; // 3 min cache
+
+function computeAdvancedScans() {
+    const now = Date.now();
+    if (advancedScansCache && (now - advancedScansCacheTime < SCANS_TTL)) {
+        return advancedScansCache;
+    }
+
+    const files = fs.readdirSync(DATA_DIR).filter(f => f.startsWith('full_')).sort().slice(-10);
+    if (files.length < 2) {
+        return {
+            intraday: { nr7: [], openLowHigh: [], cpr: [], circuitHunters: [] },
+            swing: { accumulation: [], vcpNearHigh: [], consecutivePullbacks: [] }
+        };
+    }
+
+    const sessions = files.map(f => {
+        try {
+            return JSON.parse(fs.readFileSync(path.join(DATA_DIR, f)));
+        } catch (e) {
+            return [];
+        }
+    });
+
+    const symbolMap = new Map();
+    sessions.forEach((dayStocks, idx) => {
+        dayStocks.forEach(s => {
+            if (!symbolMap.has(s.symbol)) {
+                symbolMap.set(s.symbol, { symbol: s.symbol, name: s.name, series: s.series, days: [] });
+            }
+            symbolMap.get(s.symbol).days.push({ ...s, sessionIndex: idx });
+        });
+    });
+
+    const nr7 = [];
+    const openLowHigh = [];
+    const cprSetups = [];
+    const circuitHunters = [];
+
+    const accumulation = [];
+    const vcpNearHigh = [];
+    const consecutivePullbacks = [];
+
+    for (const [symbol, data] of symbolMap) {
+        const days = data.days;
+        if (days.length < 3) continue;
+        const latest = days[days.length - 1];
+        if (!latest || latest.close < 15 || latest.volume < 10000) continue;
+
+        const prev = days[days.length - 2];
+        const latestRange = latest.high - latest.low;
+
+        // CPR calculation from previous session
+        if (prev && prev.high && prev.low && prev.close) {
+            const pivot = (prev.high + prev.low + prev.close) / 3;
+            const bc = (prev.high + prev.low) / 2;
+            const tc = (pivot - bc) + pivot;
+            const cprWidthPct = (Math.abs(tc - bc) / pivot) * 100;
+            const isNarrowCPR = cprWidthPct < 0.25;
+
+            // Camarilla levels
+            const pRange = prev.high - prev.low;
+            const h4 = prev.close + (pRange * 1.1) / 2;
+            const h3 = prev.close + (pRange * 1.1) / 4;
+            const l3 = prev.close - (pRange * 1.1) / 4;
+            const l4 = prev.close - (pRange * 1.1) / 2;
+
+            if (isNarrowCPR || Math.abs(latest.close - h4) / h4 < 0.02 || Math.abs(latest.close - l4) / l4 < 0.02) {
+                cprSetups.push({
+                    symbol, name: data.name, series: data.series,
+                    close: latest.close, pctChange: latest.pctChange, volume: latest.volume,
+                    pivot: Math.round(pivot * 100) / 100,
+                    tc: Math.round(tc * 100) / 100,
+                    bc: Math.round(bc * 100) / 100,
+                    cprWidthPct: Math.round(cprWidthPct * 100) / 100,
+                    isNarrowCPR,
+                    h4: Math.round(h4 * 100) / 100,
+                    l4: Math.round(l4 * 100) / 100
+                });
+            }
+        }
+
+        // NR7 & NR4
+        if (days.length >= 7 && latestRange > 0) {
+            const prev6Ranges = days.slice(-7, -1).map(d => d.high - d.low);
+            const isNR7 = prev6Ranges.length === 6 && prev6Ranges.every(r => latestRange < r);
+            const prev3Ranges = days.slice(-4, -1).map(d => d.high - d.low);
+            const isNR4 = prev3Ranges.length === 3 && prev3Ranges.every(r => latestRange < r);
+
+            if (isNR7 || isNR4) {
+                const breakoutBuy = latest.high;
+                const stopLoss = latest.low;
+                const target = Math.round((breakoutBuy + latestRange) * 100) / 100;
+                nr7.push({
+                    symbol, name: data.name, series: data.series,
+                    close: latest.close, pctChange: latest.pctChange, volume: latest.volume,
+                    range: Math.round(latestRange * 100) / 100,
+                    type: isNR7 ? 'NR7' : 'NR4',
+                    breakoutBuy, stopLoss, target
+                });
+            }
+        }
+
+        // Open = Low / Open = High
+        if (latest.open > 0) {
+            const isOL = Math.abs(latest.open - latest.low) / latest.open <= 0.0015;
+            const isOH = Math.abs(latest.open - latest.high) / latest.open <= 0.0015;
+            if (isOL || isOH) {
+                openLowHigh.push({
+                    symbol, name: data.name, series: data.series,
+                    open: latest.open, high: latest.high, low: latest.low, close: latest.close,
+                    pctChange: latest.pctChange, volume: latest.volume,
+                    signal: isOL ? 'OPEN=LOW (BULLISH)' : 'OPEN=HIGH (BEARISH)',
+                    bias: isOL ? 'BUY' : 'SELL'
+                });
+            }
+        }
+
+        // Circuit Freeze Proximity Hunter (within 1.5% of 5%, 10%, or 20% bands)
+        if (
+            (latest.pctChange >= 3.8 && latest.pctChange < 4.95) ||
+            (latest.pctChange >= 8.2 && latest.pctChange < 9.9) ||
+            (latest.pctChange >= 17.5 && latest.pctChange < 19.8)
+        ) {
+            const band = latest.pctChange > 15 ? '20%' : (latest.pctChange > 6 ? '10%' : '5%');
+            circuitHunters.push({
+                symbol, name: data.name, series: data.series,
+                close: latest.close, pctChange: latest.pctChange, volume: latest.volume,
+                band, distanceToCircuitPct: Math.round((parseFloat(band) - latest.pctChange) * 100) / 100
+            });
+        }
+
+        // Institutional Volume Accumulation (Swing)
+        const prevVols = days.slice(0, -1).map(d => d.volume);
+        const avgVol = prevVols.reduce((a, b) => a + b, 0) / (prevVols.length || 1);
+        if (latest.pctChange >= 1.5 && latest.volume >= 1.7 * avgVol && latest.high > latest.low) {
+            const closeStrength = (latest.close - latest.low) / (latest.high - latest.low);
+            if (closeStrength >= 0.65) {
+                accumulation.push({
+                    symbol, name: data.name, series: data.series,
+                    close: latest.close, pctChange: latest.pctChange,
+                    volume: latest.volume,
+                    volumeMultiplier: Math.round((latest.volume / avgVol) * 10) / 10,
+                    closeStrengthPct: Math.round(closeStrength * 100),
+                    stopLoss: Math.round(latest.low * 0.98 * 100) / 100,
+                    target: Math.round((latest.close + (latest.close - latest.low) * 2) * 100) / 100
+                });
+            }
+        }
+
+        // VCP / Multi-Session High Proximity
+        const maxHigh = Math.max(...days.map(d => d.high));
+        const distFromHighPct = ((maxHigh - latest.close) / maxHigh) * 100;
+        if (distFromHighPct <= 4.0 && latest.pctChange >= 0) {
+            vcpNearHigh.push({
+                symbol, name: data.name, series: data.series,
+                close: latest.close, pctChange: latest.pctChange,
+                maxHigh: Math.round(maxHigh * 100) / 100,
+                distFromHighPct: Math.round(distFromHighPct * 100) / 100,
+                volume: latest.volume
+            });
+        }
+
+        // Consecutive UC Pullback / Dip Setup
+        const hadUc2DaysAgo = prev && prev.pctChange >= 4.8;
+        if (hadUc2DaysAgo && latest.pctChange < 3 && latest.close >= prev.low) {
+            consecutivePullbacks.push({
+                symbol, name: data.name, series: data.series,
+                close: latest.close, pctChange: latest.pctChange,
+                prevClose: prev.close,
+                pullbackSupport: Math.round(prev.low * 100) / 100,
+                reboundTarget: Math.round(prev.high * 1.05 * 100) / 100
+            });
+        }
+    }
+
+    nr7.sort((a, b) => b.volume - a.volume);
+    openLowHigh.sort((a, b) => b.volume - a.volume);
+    cprSetups.sort((a, b) => a.cprWidthPct - b.cprWidthPct);
+    circuitHunters.sort((a, b) => a.distanceToCircuitPct - b.distanceToCircuitPct);
+
+    accumulation.sort((a, b) => b.volumeMultiplier - a.volumeMultiplier);
+    vcpNearHigh.sort((a, b) => a.distFromHighPct - b.distFromHighPct);
+    consecutivePullbacks.sort((a, b) => b.pctChange - a.pctChange);
+
+    advancedScansCache = {
+        intraday: {
+            nr7: nr7.slice(0, 60),
+            openLowHigh: openLowHigh.slice(0, 60),
+            cpr: cprSetups.slice(0, 60),
+            circuitHunters: circuitHunters.slice(0, 60)
+        },
+        swing: {
+            accumulation: accumulation.slice(0, 60),
+            vcpNearHigh: vcpNearHigh.slice(0, 60),
+            consecutivePullbacks: consecutivePullbacks.slice(0, 60)
+        }
+    };
+    advancedScansCacheTime = now;
+    return advancedScansCache;
+}
+
+app.get('/api/intraday-scans', (req, res) => {
+    try {
+        const scans = computeAdvancedScans();
+        res.json({ success: true, data: scans.intraday });
+    } catch (err) {
+        console.error('Intraday scans error:', err);
+        res.status(500).json({ success: false, error: 'Failed to compute intraday scans' });
+    }
+});
+
+app.get('/api/swing-scans', (req, res) => {
+    try {
+        const scans = computeAdvancedScans();
+        res.json({ success: true, data: scans.swing });
+    } catch (err) {
+        console.error('Swing scans error:', err);
+        res.status(500).json({ success: false, error: 'Failed to compute swing scans' });
+    }
+});
+
 // ─── API: Earnings Calendar ────────────────────────────────────────────
 app.get('/api/earnings', (req, res) => {
     try {

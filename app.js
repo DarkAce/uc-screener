@@ -13,6 +13,12 @@ let deepScanData = {};
 let currentTab = 'portfolio';
 let currentSearch = '';
 let currentSort = 'change';
+let intradayData = null;
+let swingHubData = null;
+let currentIntradaySubTab = 'all';
+let currentSwingSubTab = 'all';
+let currentModalStockPrice = 0;
+let currentModalStopLoss = 0;
 
 // ─── Utilities ───────────────────────────────────────────────────────
 const formatIndianNumber = (num) => {
@@ -437,6 +443,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         const swingContainer = document.getElementById('swing-container');
         const portfolioContainer = document.getElementById('portfolio-container');
         const earningsContainer = document.getElementById('earnings-container');
+        const intradayContainer = document.getElementById('intraday-container');
+        const swingHubContainer = document.getElementById('swinghub-container');
         const earningsRefreshBtn = document.getElementById('earnings-refresh-btn');
         
         // Hide all containers
@@ -446,6 +454,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
         swingContainer.style.display = 'none';
         if (portfolioContainer) portfolioContainer.style.display = 'none';
         if (earningsContainer) earningsContainer.style.display = 'none';
+        if (intradayContainer) intradayContainer.style.display = 'none';
+        if (swingHubContainer) swingHubContainer.style.display = 'none';
         document.getElementById('deep-scan-btn').style.display = 'none';
         if (earningsRefreshBtn) earningsRefreshBtn.style.display = 'none';
 
@@ -467,6 +477,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
             if (earningsContainer) earningsContainer.style.display = 'block';
             if (earningsRefreshBtn) earningsRefreshBtn.style.display = 'flex';
             fetchEarningsData();
+        } else if (currentTab === 'intraday') {
+            if (intradayContainer) intradayContainer.style.display = 'block';
+            fetchIntradayData();
+        } else if (currentTab === 'swinghub') {
+            if (swingHubContainer) swingHubContainer.style.display = 'block';
+            fetchSwingHubData();
         } else {
             document.getElementById('deep-scan-btn').style.display = 'flex';
             stocksContainer.style.display = 'grid';
@@ -490,6 +506,14 @@ document.getElementById('search-input').addEventListener('input', (e) => {
         renderMomentum();
     } else if (currentTab === 'swing') {
         renderSwingStrategies();
+    } else if (currentTab === 'intraday') {
+        renderIntradayView();
+    } else if (currentTab === 'swinghub') {
+        renderSwingHubView();
+    } else if (currentTab === 'intraday') {
+        renderIntradayView();
+    } else if (currentTab === 'swinghub') {
+        renderSwingHubView();
     } else {
         renderStocks();
     }
@@ -593,6 +617,38 @@ modalOverlay.innerHTML = `
             <button class="modal-close" onclick="closeStockDetail()">&times;</button>
         </div>
         <div id="modal-stats" class="modal-stats"></div>
+        <div class="modal-risk-panel" id="modal-risk-panel" style="margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 0.9rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                    🎯 Position Sizing & CPR Analytics
+                </h3>
+                <span id="cpr-badge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; background: rgba(77, 124, 255, 0.15); color: #4d7cff; font-weight: 600;">Standard CPR</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted)">Pivot Point</div>
+                    <div id="modal-pivot-val" style="font-size: 0.95rem; font-weight: 600; color: #fff;">—</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted)">Camarilla H4 (Breakout)</div>
+                    <div id="modal-h4-val" style="font-size: 0.95rem; font-weight: 600; color: var(--positive);">—</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 6px;">
+                    <div style="font-size: 0.72rem; color: var(--text-muted)">Camarilla L4 (Breakdown)</div>
+                    <div id="modal-l4-val" style="font-size: 0.95rem; font-weight: 600; color: var(--danger);">—</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <label style="font-size: 0.8rem; color: var(--text-muted)">Risk Capital (₹):</label>
+                <input type="number" id="calc-risk-amount" value="5000" min="500" step="500" style="width: 100px; padding: 6px 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: #fff; border-radius: 6px; font-size: 0.85rem;" oninput="updatePositionSizing()">
+                <div id="sizing-result" style="font-size: 0.82rem; color: var(--text-main); font-weight: 500;">
+                    Rec. Qty: <strong id="rec-qty-val" style="color: #4d7cff;">—</strong>
+                </div>
+                <button type="button" onclick="applyRecQty()" style="padding: 6px 12px; background: rgba(77, 124, 255, 0.2); border: 1px solid rgba(77, 124, 255, 0.4); color: #fff; border-radius: 6px; cursor: pointer; font-size: 0.75rem;">
+                    ⚡ Use in Trade Box
+                </button>
+            </div>
+        </div>
         <div class="modal-trade-panel" id="modal-trade-panel" style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px;">
             <h3 style="margin-bottom: 10px; font-size: 0.9rem; color: var(--text-primary);">Paper Trading</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
@@ -726,6 +782,35 @@ function renderModalStats(data) {
         <div class="mstat"><span class="mstat-val">${formatCurrency(minPrice)} - ${formatCurrency(maxPrice)}</span><span class="mstat-lbl">Price Range</span></div>
         <div class="mstat"><span class="mstat-val" style="color:var(--warning-fire)">${ucDays}</span><span class="mstat-lbl">UC Days</span></div>
     `;
+
+    if (h && h.length > 0) {
+        const prevDay = h.length >= 2 ? h[h.length - 2] : latest;
+        const pivot = (prevDay.high + prevDay.low + prevDay.close) / 3;
+        const bc = (prevDay.high + prevDay.low) / 2;
+        const tc = (pivot - bc) + pivot;
+        const cprWidthPct = (Math.abs(tc - bc) / pivot) * 100;
+        const pRange = prevDay.high - prevDay.low;
+        const h4 = prevDay.close + (pRange * 1.1) / 2;
+        const l4 = prevDay.close - (pRange * 1.1) / 2;
+
+        const pivotEl = document.getElementById('modal-pivot-val');
+        const h4El = document.getElementById('modal-h4-val');
+        const l4El = document.getElementById('modal-l4-val');
+        const cprBadge = document.getElementById('cpr-badge');
+
+        if (pivotEl) pivotEl.textContent = formatCurrency(pivot);
+        if (h4El) h4El.textContent = formatCurrency(h4);
+        if (l4El) l4El.textContent = formatCurrency(l4);
+        if (cprBadge) {
+            cprBadge.textContent = cprWidthPct < 0.25 ? '⚡ Narrow CPR (Trending)' : 'Standard CPR';
+            cprBadge.style.color = cprWidthPct < 0.25 ? '#16c784' : '#4d7cff';
+            cprBadge.style.background = cprWidthPct < 0.25 ? 'rgba(22, 199, 132, 0.15)' : 'rgba(77, 124, 255, 0.15)';
+        }
+
+        currentModalStockPrice = latest.close;
+        currentModalStopLoss = latest.low;
+        updatePositionSizing();
+    }
 }
 
 function renderHistoryTable(history) {
@@ -1685,4 +1770,242 @@ function renderEarnings() {
     mobileHtml += '</div>';
     
     container.innerHTML = html + desktopHtml + mobileHtml;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// Advanced Scanners: Intraday Hub & Swing Radar Logic
+// ═══════════════════════════════════════════════════════════════════════
+
+function updatePositionSizing() {
+    const riskInput = document.getElementById('calc-risk-amount');
+    const recQtyEl = document.getElementById('rec-qty-val');
+    if (!riskInput || !recQtyEl) return;
+
+    const risk = parseFloat(riskInput.value) || 5000;
+    const entry = currentModalStockPrice;
+    let stop = currentModalStopLoss;
+    if (stop >= entry) stop = entry * 0.97;
+    const perShareRisk = entry - stop;
+
+    if (perShareRisk > 0 && entry > 0) {
+        const qty = Math.max(1, Math.floor(risk / perShareRisk));
+        recQtyEl.textContent = `${qty} shares (Stop: ₹${stop.toFixed(2)})`;
+        window._calculatedRecQty = qty;
+    } else {
+        recQtyEl.textContent = '—';
+    }
+}
+
+function applyRecQty() {
+    const tradeQty = document.getElementById('trade-qty');
+    if (tradeQty && window._calculatedRecQty) {
+        tradeQty.value = window._calculatedRecQty;
+        tradeQty.focus();
+    }
+}
+
+async function fetchIntradayData() {
+    const container = document.getElementById('intraday-container');
+    if (!intradayData) {
+        container.innerHTML = `
+            <div class="ipo-loading" style="color: #f5b028">
+                <div class="loader" style="border-top-color: #f5b028"></div>
+                <p>Computing Intraday Alpha: NR7/NR4, Open=Low/High & CPR Breakouts...</p>
+            </div>
+        `;
+        try {
+            const res = await fetch('/api/intraday-scans');
+            const json = await res.json();
+            if (json.success) {
+                intradayData = json.data;
+            }
+        } catch (e) {
+            container.innerHTML = `<div class="empty-state"><h3>Failed to load intraday scans</h3><p>${e.message}</p></div>`;
+            return;
+        }
+    }
+    renderIntradayView();
+}
+
+function setIntradaySubTab(sub) {
+    currentIntradaySubTab = sub;
+    renderIntradayView();
+}
+
+function renderIntradayView() {
+    const container = document.getElementById('intraday-container');
+    if (!intradayData) return;
+
+    let items = [];
+    if (currentIntradaySubTab === 'nr7') {
+        items = intradayData.nr7.map(s => ({ ...s, tag: s.type, tagClass: 'nr7', subtitle: `Range Contraction: ₹${s.range}`, trigger: `Breakout Buy > ₹${s.breakoutBuy.toFixed(2)}`, stop: `Stop: ₹${s.stopLoss.toFixed(2)}`, target: `Target: ₹${s.target.toFixed(2)}` }));
+    } else if (currentIntradaySubTab === 'open') {
+        items = intradayData.openLowHigh.map(s => ({ ...s, tag: s.signal, tagClass: s.bias === 'BUY' ? 'buy' : 'sell', subtitle: `Open: ₹${s.open.toFixed(2)} | High: ₹${s.high.toFixed(2)} | Low: ₹${s.low.toFixed(2)}`, trigger: `Signal: ${s.bias} at market`, stop: `Stop: ₹${s.open.toFixed(2)}`, target: `Target: 1:2 R:R` }));
+    } else if (currentIntradaySubTab === 'cpr') {
+        items = intradayData.cpr.map(s => ({ ...s, tag: s.isNarrowCPR ? '⚡ Narrow CPR' : 'Camarilla Level', tagClass: 'cpr', subtitle: `Pivot: ₹${s.pivot.toFixed(2)} (Width: ${s.cprWidthPct}%)`, trigger: `H4 Breakout: ₹${s.h4.toFixed(2)}`, stop: `L4 Breakdown: ₹${s.l4.toFixed(2)}`, target: `TC: ₹${s.tc.toFixed(2)}` }));
+    } else if (currentIntradaySubTab === 'hunters') {
+        items = intradayData.circuitHunters.map(s => ({ ...s, tag: `Freeze Alert (${s.band})`, tagClass: 'nr7', subtitle: `Current Change: +${s.pctChange.toFixed(2)}%`, trigger: `Only ${s.distanceToCircuitPct}% to Upper Circuit`, stop: `Stop: -1.5%`, target: `Target: Circuit Freeze` }));
+    } else {
+        const a1 = intradayData.nr7.slice(0, 15).map(s => ({ ...s, tag: s.type, tagClass: 'nr7', subtitle: `Range Contraction: ₹${s.range}`, trigger: `Breakout > ₹${s.breakoutBuy.toFixed(2)}`, stop: `Stop: ₹${s.stopLoss.toFixed(2)}`, target: `Target: ₹${s.target.toFixed(2)}` }));
+        const a2 = intradayData.openLowHigh.slice(0, 15).map(s => ({ ...s, tag: s.signal, tagClass: s.bias === 'BUY' ? 'buy' : 'sell', subtitle: `Open: ₹${s.open.toFixed(2)}`, trigger: `Signal: ${s.bias}`, stop: `Stop: ₹${s.open.toFixed(2)}`, target: `Target: 1:2 R:R` }));
+        const a3 = intradayData.cpr.slice(0, 15).map(s => ({ ...s, tag: s.isNarrowCPR ? '⚡ Narrow CPR' : 'Camarilla H4/L4', tagClass: 'cpr', subtitle: `Pivot: ₹${s.pivot.toFixed(2)}`, trigger: `H4: ₹${s.h4.toFixed(2)}`, stop: `L4: ₹${s.l4.toFixed(2)}`, target: `TC: ₹${s.tc.toFixed(2)}` }));
+        const a4 = intradayData.circuitHunters.slice(0, 15).map(s => ({ ...s, tag: `Freeze Alert (${s.band})`, tagClass: 'nr7', subtitle: `Change: +${s.pctChange.toFixed(2)}%`, trigger: `${s.distanceToCircuitPct}% to UC`, stop: `Stop: -1.5%`, target: `Target: Limit Freeze` }));
+        items = [...a1, ...a2, ...a3, ...a4];
+    }
+
+    if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        items = items.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    }
+
+    let filterHtml = `
+        <div class="subfilter-bar">
+            <button class="subfilter-btn ${currentIntradaySubTab === 'all' ? 'active' : ''}" onclick="setIntradaySubTab('all')">🔥 All Intraday Setups</button>
+            <button class="subfilter-btn ${currentIntradaySubTab === 'nr7' ? 'active' : ''}" onclick="setIntradaySubTab('nr7')">📐 NR7 / NR4 Breakouts (${intradayData.nr7.length})</button>
+            <button class="subfilter-btn ${currentIntradaySubTab === 'open' ? 'active' : ''}" onclick="setIntradaySubTab('open')">⚡ Open = Low / High (${intradayData.openLowHigh.length})</button>
+            <button class="subfilter-btn ${currentIntradaySubTab === 'cpr' ? 'active' : ''}" onclick="setIntradaySubTab('cpr')">🎯 Narrow CPR & Camarilla (${intradayData.cpr.length})</button>
+            <button class="subfilter-btn ${currentIntradaySubTab === 'hunters' ? 'active' : ''}" onclick="setIntradaySubTab('hunters')">🔒 Circuit Freeze Proximity (${intradayData.circuitHunters.length})</button>
+        </div>
+    `;
+
+    if (items.length === 0) {
+        container.innerHTML = filterHtml + '<div class="empty-state"><h3>No setups matching filter</h3><p>Try selecting another intraday sub-category or clearing your search.</p></div>';
+        return;
+    }
+
+    let cardsHtml = '<div class="scan-grid">';
+    items.forEach(stock => {
+        const safeName = (stock.name || stock.symbol).replace(/'/g, "\\'");
+        const isGreen = stock.pctChange >= 0;
+        cardsHtml += `
+            <div class="scan-card" onclick="openStockDetail('${stock.symbol}', '${safeName}', null)">
+                <div class="card-header" style="margin-bottom: 0.5rem;">
+                    <div>
+                        <div class="stock-symbol">${stock.symbol}</div>
+                        <div class="stock-name" style="font-size: 0.78rem;">${stock.name}</div>
+                    </div>
+                    <span class="scan-badge ${stock.tagClass || 'nr7'}">${stock.tag}</span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">${stock.subtitle}</div>
+                <div class="card-body" style="margin-bottom: 0.75rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                    <div>
+                        <div class="current-price" style="font-size: 1.25rem;">₹${parseFloat(stock.close).toFixed(2)}</div>
+                        <div class="price-change"><span class="change-today ${isGreen ? 'positive' : 'negative'}">${isGreen ? '+' : ''}${stock.pctChange.toFixed(2)}%</span></div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem;">
+                        <div style="color: var(--text-muted);">Vol: ${formatVolume(stock.volume)}</div>
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.75rem; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Trigger:</span><strong style="color: var(--positive);">${stock.trigger}</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Stop Loss:</span><span style="color: var(--danger);">${stock.stop}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Target:</span><span style="color: #fff;">${stock.target}</span></div>
+                </div>
+            </div>
+        `;
+    });
+    cardsHtml += '</div>';
+
+    container.innerHTML = filterHtml + cardsHtml;
+}
+
+async function fetchSwingHubData() {
+    const container = document.getElementById('swinghub-container');
+    if (!swingHubData) {
+        container.innerHTML = `
+            <div class="ipo-loading" style="color: #16c784">
+                <div class="loader" style="border-top-color: #16c784"></div>
+                <p>Scanning Swing Radar: Institutional Accumulation, VCP & Consecutive Pullbacks...</p>
+            </div>
+        `;
+        try {
+            const res = await fetch('/api/swing-scans');
+            const json = await res.json();
+            if (json.success) {
+                swingHubData = json.data;
+            }
+        } catch (e) {
+            container.innerHTML = `<div class="empty-state"><h3>Failed to load swing scans</h3><p>${e.message}</p></div>`;
+            return;
+        }
+    }
+    renderSwingHubView();
+}
+
+function setSwingSubTab(sub) {
+    currentSwingSubTab = sub;
+    renderSwingHubView();
+}
+
+function renderSwingHubView() {
+    const container = document.getElementById('swinghub-container');
+    if (!swingHubData) return;
+
+    let items = [];
+    if (currentSwingSubTab === 'accum') {
+        items = swingHubData.accumulation.map(s => ({ ...s, tag: 'Institutional Accumulation', tagClass: 'accum', subtitle: `Volume Surge: ${s.volumeMultiplier}x 10d avg (Close in top ${s.closeStrengthPct}%)`, targetStr: `Target: ₹${s.target.toFixed(2)}`, stopStr: `Stop: ₹${s.stopLoss.toFixed(2)}` }));
+    } else if (currentSwingSubTab === 'vcp') {
+        items = swingHubData.vcpNearHigh.map(s => ({ ...s, tag: 'VCP / Near 10D High', tagClass: 'vcp', subtitle: `Only ${s.distFromHighPct}% below peak (High: ₹${s.maxHigh.toFixed(2)})`, targetStr: `Breakout Target: +5-8%`, stopStr: `Stop: -3% below base` }));
+    } else if (currentSwingSubTab === 'pullback') {
+        items = swingHubData.consecutivePullbacks.map(s => ({ ...s, tag: 'UC Dip Pullback', tagClass: 'nr7', subtitle: `Prev Day UC -> Healthy pullback dip above ₹${s.pullbackSupport.toFixed(2)}`, targetStr: `Rebound Target: ₹${s.reboundTarget.toFixed(2)}`, stopStr: `Support Stop: ₹${s.pullbackSupport.toFixed(2)}` }));
+    } else {
+        const a1 = swingHubData.accumulation.slice(0, 20).map(s => ({ ...s, tag: 'Institutional Accumulation', tagClass: 'accum', subtitle: `Surge: ${s.volumeMultiplier}x Vol (Top ${s.closeStrengthPct}% close)`, targetStr: `Target: ₹${s.target.toFixed(2)}`, stopStr: `Stop: ₹${s.stopLoss.toFixed(2)}` }));
+        const a2 = swingHubData.vcpNearHigh.slice(0, 20).map(s => ({ ...s, tag: 'VCP / Near Peak', tagClass: 'vcp', subtitle: `${s.distFromHighPct}% below peak (High: ₹${s.maxHigh.toFixed(2)})`, targetStr: `Breakout: +5-8%`, stopStr: `Stop: -3% base` }));
+        const a3 = swingHubData.consecutivePullbacks.slice(0, 20).map(s => ({ ...s, tag: 'UC Dip Pullback', tagClass: 'nr7', subtitle: `Consolidating above support ₹${s.pullbackSupport.toFixed(2)}`, targetStr: `Rebound: ₹${s.reboundTarget.toFixed(2)}`, stopStr: `Support Stop: ₹${s.pullbackSupport.toFixed(2)}` }));
+        items = [...a1, ...a2, ...a3];
+    }
+
+    if (currentSearch) {
+        const q = currentSearch.toLowerCase();
+        items = items.filter(s => s.symbol.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    }
+
+    let filterHtml = `
+        <div class="subfilter-bar">
+            <button class="subfilter-btn ${currentSwingSubTab === 'all' ? 'active' : ''}" onclick="setSwingSubTab('all')">🚀 All Swing Radar</button>
+            <button class="subfilter-btn ${currentSwingSubTab === 'accum' ? 'active' : ''}" onclick="setSwingSubTab('accum')">📦 Institutional Accumulation (${swingHubData.accumulation.length})</button>
+            <button class="subfilter-btn ${currentSwingSubTab === 'vcp' ? 'active' : ''}" onclick="setSwingSubTab('vcp')">📈 VCP / Near Highs (${swingHubData.vcpNearHigh.length})</button>
+            <button class="subfilter-btn ${currentSwingSubTab === 'pullback' ? 'active' : ''}" onclick="setSwingSubTab('pullback')">🔁 Consecutive UC Dips (${swingHubData.consecutivePullbacks.length})</button>
+        </div>
+    `;
+
+    if (items.length === 0) {
+        container.innerHTML = filterHtml + '<div class="empty-state"><h3>No setups matching filter</h3><p>Try selecting another swing sub-category or clearing your search.</p></div>';
+        return;
+    }
+
+    let cardsHtml = '<div class="scan-grid">';
+    items.forEach(stock => {
+        const safeName = (stock.name || stock.symbol).replace(/'/g, "\\'");
+        const isGreen = stock.pctChange >= 0;
+        cardsHtml += `
+            <div class="scan-card" onclick="openStockDetail('${stock.symbol}', '${safeName}', null)">
+                <div class="card-header" style="margin-bottom: 0.5rem;">
+                    <div>
+                        <div class="stock-symbol">${stock.symbol}</div>
+                        <div class="stock-name" style="font-size: 0.78rem;">${stock.name}</div>
+                    </div>
+                    <span class="scan-badge ${stock.tagClass || 'accum'}">${stock.tag}</span>
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.75rem;">${stock.subtitle}</div>
+                <div class="card-body" style="margin-bottom: 0.75rem; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 0.5rem;">
+                    <div>
+                        <div class="current-price" style="font-size: 1.25rem;">₹${parseFloat(stock.close).toFixed(2)}</div>
+                        <div class="price-change"><span class="change-today ${isGreen ? 'positive' : 'negative'}">${isGreen ? '+' : ''}${stock.pctChange.toFixed(2)}%</span></div>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem;">
+                        <div style="color: var(--text-muted);">Vol: ${formatVolume(stock.volume)}</div>
+                    </div>
+                </div>
+                <div style="background: rgba(0,0,0,0.25); border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.75rem; display: flex; flex-direction: column; gap: 4px;">
+                    <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Swing Target:</span><strong style="color: var(--positive);">${stock.targetStr}</strong></div>
+                    <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Risk Control:</span><span style="color: var(--danger);">${stock.stopStr}</span></div>
+                </div>
+            </div>
+        `;
+    });
+    cardsHtml += '</div>';
+
+    container.innerHTML = filterHtml + cardsHtml;
 }

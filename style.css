@@ -1518,3 +1518,79 @@ body { overflow: hidden; /* Prevent body scroll, scroll main area instead */ }
     .e-mc-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
     .e-mc-bottom { display: flex; justify-content: space-between; align-items: center; }
 }
+
+
+/* ─── Advanced Scanners (Intraday Hub & Swing Radar) ───────────────── */
+.scans-container {
+    padding: 0.25rem 0;
+}
+.subfilter-bar {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+.subfilter-bar::-webkit-scrollbar { display: none; }
+.subfilter-btn {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    padding: 0.45rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+.subfilter-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-main);
+}
+.subfilter-btn.active {
+    background: var(--primary-accent-dim);
+    color: var(--primary-accent);
+    border-color: rgba(255, 255, 255, 0.3);
+    font-weight: 600;
+}
+.scan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
+    gap: 1rem;
+}
+.scan-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.scan-card:hover {
+    transform: translateY(-2px);
+    background: var(--card-bg-hover);
+    border-color: var(--card-border-highlight);
+}
+.scan-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.scan-badge.nr7 { background: rgba(245, 176, 40, 0.15); color: #f5b028; }
+.scan-badge.cpr { background: rgba(22, 199, 132, 0.15); color: #16c784; }
+.scan-badge.buy { background: rgba(22, 199, 132, 0.2); color: #16c784; }
+.scan-badge.sell { background: rgba(234, 57, 67, 0.2); color: #ea3943; }
+.scan-badge.accum { background: rgba(77, 124, 255, 0.2); color: #4d7cff; }
+.scan-badge.vcp { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+
+@media (max-width: 480px) {
+    .scan-grid {
+        grid-template-columns: 1fr;
+    }
+}
