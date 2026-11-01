@@ -431,6 +431,8 @@ app.get('/api/stock/:symbol/history/stream', async (req, res) => {
 });
 
 // ─── API: Health ─────────────────────────────────────────────────────
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 app.get('/api/health', (req, res) => {
     const cached = fs.readdirSync(DATA_DIR).filter(f => f.endsWith('.json'));
     res.json({

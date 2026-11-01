@@ -596,9 +596,9 @@ modalOverlay.innerHTML = `
         <div class="modal-trade-panel" id="modal-trade-panel" style="margin-bottom: 20px; padding: 15px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px;">
             <h3 style="margin-bottom: 10px; font-size: 0.9rem; color: var(--text-primary);">Paper Trading</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="number" id="trade-qty" placeholder="Qty" min="1" style="width: 80px; padding: 6px; background: var(--bg-elevated); border: 1px solid var(--border); color: white; border-radius: 4px;">
-                <button onclick="submitTrade('BUY')" style="padding: 6px 15px; background: var(--success); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">BUY</button>
-                <button onclick="submitTrade('SELL')" style="padding: 6px 15px; background: var(--danger); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">SELL</button>
+                <input type="number" id="trade-qty" placeholder="Qty" min="1" style="width: 90px; min-height: 40px; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); color: white; border-radius: 6px; font-size: 0.95rem;">
+                <button onclick="submitTrade('BUY')" style="min-height: 40px; min-width: 72px; padding: 8px 18px; background: var(--success); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">BUY</button>
+                <button onclick="submitTrade('SELL')" style="min-height: 40px; min-width: 72px; padding: 8px 18px; background: var(--danger); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;">SELL</button>
                 <span id="trade-feedback" style="font-size: 0.8rem; margin-left: 10px;"></span>
             </div>
         </div>
