@@ -640,11 +640,11 @@ modalOverlay.innerHTML = `
             </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <label style="font-size: 0.8rem; color: var(--text-muted)">Risk Capital (₹):</label>
-                <input type="number" id="calc-risk-amount" value="5000" min="500" step="500" style="width: 100px; padding: 6px 10px; background: var(--bg-elevated); border: 1px solid var(--border); color: #fff; border-radius: 6px; font-size: 0.85rem;" oninput="updatePositionSizing()">
+                <input type="number" id="calc-risk-amount" value="5000" min="500" step="500" style="width: 110px; min-height: 40px; padding: 8px 12px; background: var(--bg-elevated); border: 1px solid var(--border); color: #fff; border-radius: 6px; font-size: 0.9rem;" oninput="updatePositionSizing()">
                 <div id="sizing-result" style="font-size: 0.82rem; color: var(--text-main); font-weight: 500;">
                     Rec. Qty: <strong id="rec-qty-val" style="color: #4d7cff;">—</strong>
                 </div>
-                <button type="button" onclick="applyRecQty()" style="padding: 6px 12px; background: rgba(77, 124, 255, 0.2); border: 1px solid rgba(77, 124, 255, 0.4); color: #fff; border-radius: 6px; cursor: pointer; font-size: 0.75rem;">
+                <button type="button" onclick="applyRecQty()" style="min-height: 40px; padding: 8px 16px; background: rgba(77, 124, 255, 0.2); border: 1px solid rgba(77, 124, 255, 0.4); color: #fff; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 500;">
                     ⚡ Use in Trade Box
                 </button>
             </div>

@@ -32,7 +32,7 @@ const TARGET_URL = process.env.TEST_URL || 'http://localhost:3000/';
   });
   await new Promise(r => setTimeout(r, 200));
   await page.click('[data-tab="intraday"]');
-  await new Promise(r => setTimeout(r, 1000));
+  await page.waitForSelector('#intraday-container .scan-card', { timeout: 15000 });
 
   const intradayState = await page.evaluate(() => {
     const container = document.getElementById('intraday-container');
@@ -48,7 +48,7 @@ const TARGET_URL = process.env.TEST_URL || 'http://localhost:3000/';
     const btn = document.querySelector('.subfilter-btn:nth-child(2)');
     if (btn) btn.click();
   });
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 500));
   const nr7Cards = await page.evaluate(() => document.querySelectorAll('#intraday-container .scan-card').length);
   console.log('NR7 cards displayed after filter click:', nr7Cards);
 
@@ -60,7 +60,7 @@ const TARGET_URL = process.env.TEST_URL || 'http://localhost:3000/';
   });
   await new Promise(r => setTimeout(r, 200));
   await page.click('[data-tab="swinghub"]');
-  await new Promise(r => setTimeout(r, 1000));
+  await page.waitForSelector('#swinghub-container .scan-card', { timeout: 15000 });
 
   const swingState = await page.evaluate(() => {
     const container = document.getElementById('swinghub-container');
@@ -76,17 +76,18 @@ const TARGET_URL = process.env.TEST_URL || 'http://localhost:3000/';
     const btn = document.querySelector('#swinghub-container .subfilter-btn:nth-child(2)');
     if (btn) btn.click();
   });
-  await new Promise(r => setTimeout(r, 400));
+  await new Promise(r => setTimeout(r, 500));
   const accumCards = await page.evaluate(() => document.querySelectorAll('#swinghub-container .scan-card').length);
   console.log('Institutional Accumulation cards displayed:', accumCards);
 
   // 3. Test Position Sizing & CPR Modal Analytics
   console.log('\n--- 3. Testing Position Sizing & CPR Modal Analytics ---');
   await page.evaluate(() => {
-    const firstCard = document.querySelector('.scan-card');
+    const firstCard = document.querySelector('#intraday-container .scan-card') || document.querySelector('.scan-card');
     if (firstCard) firstCard.click();
   });
-  await new Promise(r => setTimeout(r, 1200));
+  await page.waitForSelector('#stock-modal.active', { timeout: 10000 });
+  await page.waitForFunction(() => document.getElementById('modal-pivot-val')?.textContent !== '—', { timeout: 10000 });
 
   const modalRiskAudit = await page.evaluate(() => {
     const overlay = document.querySelector('.modal-overlay');
