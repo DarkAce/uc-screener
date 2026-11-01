@@ -233,7 +233,7 @@ select option { background: #000; }
 /* ─── Stock Cards Grid ──────────────────────────────────────────────── */
 .stocks-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(310px, 100%), 1fr));
     gap: 1rem;
     min-height: 200px;
 }
@@ -421,7 +421,7 @@ select option { background: #000; }
 /* ─── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
     .app-container { padding: 1rem; }
-    h1 { font-size: 1.8rem; }
+    h1 { font-size: 1.5rem; }
 
     .header-content {
         flex-direction: column;
@@ -459,8 +459,8 @@ select option { background: #000; }
         display: none;
     }
 
-    .stocks-grid { grid-template-columns: repeat(2, 1fr); }
-    .stat-value { font-size: 2rem; }
+    .stocks-grid { grid-template-columns: 1fr; }
+    .stat-value { font-size: 1.5rem; }
 }
 
 @media (max-width: 480px) {
@@ -549,7 +549,7 @@ select option { background: #000; }
 
 @media (max-width: 768px) {
     .modal-content { 
-        padding: 1.5rem; 
+        padding: 1.25rem; 
         width: 100%; 
         height: 100dvh; 
         max-height: 100dvh; 
@@ -557,9 +557,20 @@ select option { background: #000; }
         transform: translateY(100%);
     }
     .modal-overlay.active .modal-content { transform: translateY(0); }
-    .modal-chart-container { padding: 1rem; }
-    .modal-chart-container canvas { height: 250px !important; }
-    .modal-stats { grid-template-columns: 1fr 1fr; }
+    .modal-chart-container { padding: 0.75rem; }
+    .modal-chart-container canvas { height: 220px !important; }
+    .modal-stats { grid-template-columns: 1fr 1fr; gap: 0.75rem; padding: 1rem; }
+    .modal-header h2 { font-size: 1.5rem; }
+    .modal-close {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.06);
+    }
 }
 
 /* ─── News Section ─────────────────────────────────────────────────── */
@@ -578,7 +589,7 @@ select option { background: #000; }
 
 .news-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr));
     gap: 1rem;
 }
 
@@ -636,6 +647,7 @@ select option { background: #000; }
     border: 1px solid var(--card-border);
     border-radius: var(--radius);
     animation: slideUp 0.4s ease both;
+    position: relative;
 }
 
 @keyframes fadeInTable {
@@ -820,7 +832,7 @@ select option { background: #000; }
         display: none;
     }
 }
-}
+
 
 /* ─── Momentum Tab Styling ────────────────────────────────────────── */
 .tab-btn[data-tab="momentum"].active {
@@ -852,7 +864,7 @@ select option { background: #000; }
 
 .swing-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
     gap: 1.5rem;
     padding: 1rem 0;
 }
@@ -975,7 +987,7 @@ select option { background: #000; }
 }
 .earnings-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
     gap: 12px;
 }
 .earnings-card {
@@ -1176,28 +1188,169 @@ body { overflow: hidden; /* Prevent body scroll, scroll main area instead */ }
 
 /* ─── Mobile Layout ─────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    .app-layout { display: flex; flex-direction: column; height: 100dvh; }
-    .sidebar { 
-        width: 100%; height: auto; flex-direction: row; padding: 0.5rem; 
-        overflow-x: auto; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.05); 
-        scrollbar-width: none; /* Firefox */
+    /* Allow body scroll on mobile for pull-to-refresh and natural scrolling */
+    body { overflow: auto; overflow-x: hidden; }
+
+    .app-layout {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
     }
-    .sidebar::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
-    .sidebar-nav { display: flex; flex-direction: row; gap: 0.5rem; white-space: nowrap; }
-    .nav-section { display: flex; margin: 0; align-items: center; gap: 0.5rem; }
+
+    /* ── Sidebar → horizontal scrolling tab strip ── */
+    .sidebar {
+        width: 100%;
+        height: auto;
+        min-height: 52px;
+        flex-direction: row;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        position: relative;
+    }
+    .sidebar::-webkit-scrollbar { display: none; }
+
+    /* Scroll affordance — fade gradient on right edge */
+    .sidebar::after {
+        content: '';
+        position: sticky;
+        right: 0;
+        flex-shrink: 0;
+        min-width: 40px;
+        height: 100%;
+        background: linear-gradient(to right, transparent, var(--bg-surface));
+        pointer-events: none;
+    }
+
+    .sidebar-nav {
+        display: flex;
+        flex-direction: row;
+        gap: 0.25rem;
+        white-space: nowrap;
+        flex-wrap: nowrap;
+    }
+    .nav-section {
+        display: flex;
+        margin: 0;
+        align-items: center;
+        gap: 0.25rem;
+    }
     .nav-section-title { display: none; }
-    .tab-btn { width: auto; margin: 0; padding: 0.6rem 1rem; border-radius: 20px; min-height: 44px; justify-content: center; }
+    .tab-btn {
+        width: auto;
+        margin: 0;
+        padding: 0.5rem 0.85rem;
+        border-radius: 20px;
+        min-height: 40px;
+        justify-content: center;
+        font-size: 0.78rem;
+        gap: 0.35rem;
+        flex-shrink: 0;
+    }
+    .tab-btn .icon { margin-right: 4px; }
     .sidebar-header, .sidebar-footer { display: none; }
-    .top-bar { flex-direction: column; align-items: flex-start; padding: 1rem; gap: 1rem; }
-    .top-bar-right { width: 100%; justify-content: space-between; }
-    .metrics-strip { flex-wrap: wrap; }
-    .controls-bar { width: 100%; flex-wrap: wrap; }
-    .main-area { height: auto; flex: 1; }
-    
-    /* Make controls wrap nicely */
-    .controls-bar .search-box { width: 100%; flex: 100%; }
-    #sort-select { flex: 1; }
-    #deep-scan-btn { flex: 1; justify-content: center; }
+
+    /* ── Top bar — stack vertically, full width ── */
+    .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+    }
+    .top-bar-left { width: 100%; }
+    .top-bar-right {
+        width: 100%;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    #page-title {
+        font-size: 1.05rem;
+        margin-bottom: 0.35rem;
+    }
+
+    /* Metrics strip — compact on mobile */
+    .metrics-strip {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .stat-value { font-size: 0.95rem; }
+    .stat-label { font-size: 0.65rem; }
+
+    /* ── Controls — stack for full-width touch targets ── */
+    .controls-bar {
+        width: 100%;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    .controls-bar .search-box {
+        width: 100%;
+        flex: unset;
+    }
+    .sort-box { width: 100%; }
+    #sort-select {
+        width: 100%;
+        min-width: unset;
+    }
+    #deep-scan-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .generate-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 0.65rem 1rem;
+    }
+
+    /* ── Main content area — reduce padding ── */
+    .main-area {
+        height: auto;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+    }
+    .content-scroll-area {
+        padding: 1rem 0.75rem;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* ── Stock card grid — single column on phones ── */
+    .stocks-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    /* ── Swing cards — single column ── */
+    .swing-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* ── Modal — full-screen sheet with large close button ── */
+    .modal-close {
+        min-width: 44px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+}
+
+/* ── Extra-small phones (≤ 480px) ── */
+@media (max-width: 480px) {
+    .content-scroll-area { padding: 0.75rem 0.5rem; }
+    .stat-card { gap: 0.35rem; }
+    .tab-btn { padding: 0.45rem 0.7rem; font-size: 0.72rem; }
+    select { min-width: 0; width: 100%; }
+    .earnings-grid { grid-template-columns: 1fr; }
+    .news-grid { grid-template-columns: 1fr; }
 }
 /* Custom Scrollbars */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
